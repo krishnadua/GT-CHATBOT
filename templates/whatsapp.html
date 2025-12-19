@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Chatbot Test - Golden Tree Garments</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+        button { background: #25D366; color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 16px; cursor: pointer; margin: 10px; }
+        button:hover { background: #128C7E; }
+        .phone-info { background: #f0f0f0; padding: 10px; border-radius: 5px; margin: 20px 0; }
+        .custom-num { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 WhatsApp Chatbot Test</h1>
+    <p>Test Arya (our AI assistant) by sending a message to our business number.</p>
+    
+    <div class="phone-info">
+        <h3>Business Phone:</h3>
+        <p>+91 {{ business_phone }}</p>
+        {% if test_phone %}
+            <p class="custom-num">Custom Test Number: +91 {{ test_phone }}</p>
+            <p>(Simulating send from this number – webhook will use it as username.)</p>
+        {% endif %}
+    </div>
+    
+    <button onclick="openWhatsAppTest()">Send Test Query to WhatsApp</button>
+    <p><small>Opens WhatsApp with pre-filled message: "Hi Arya, what are the store timings?"</small></p>
+    
+    <script>
+    function openWhatsAppTest() {
+        let url = '{{ whatsapp_url }}';  // Default from view
+        {% if test_phone %}
+            // Customize for test number (pre-fill as if from custom num)
+            const customMsg = encodeURIComponent(`Hi Arya, testing from {{ test_phone }}: Store timings?`);
+            url = `https://wa.me/+15551909765?text=${customMsg}`;
+        {% endif %}
+        
+        const popup = window.open(url, 'WhatsAppTest', 'width=600,height=800,scrollbars=yes,resizable=yes');
+        if (popup) {
+            popup.focus();
+        } else {
+            window.open(url, '_blank');  // Fallback if blocked
+        }
+    }
+    </script>
+</body>
+</html>

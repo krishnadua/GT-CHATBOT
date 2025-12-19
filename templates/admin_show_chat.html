@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Chat Sessions</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js (For Accordion Logic) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Phosphor Icons (High quality icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        /* Smooth fade for accordion */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+        .fade-enter, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
+
+    <!-- NAVBAR -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                
+                <!-- Logo / Title -->
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow-sm">
+                        <i class="ph ph-chats-circle text-xl"></i>
+                    </div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 hidden sm:block">
+                        Admin Portal
+                    </h1>
+                </div>
+
+                <!-- Right Side Actions -->
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <!-- User Info (Hidden on small mobile) -->
+                    <div class="hidden md:flex flex-col items-end mr-2">
+                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Logged in</span>
+                        <span class="text-sm font-medium text-slate-700">{{ admin_username }}</span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <a href="/admin-dashboard/" 
+                       class="p-2 text-slate-500 hover:text-indigo-600 transition-colors" title="Dashboard">
+                        <i class="ph ph-squares-four text-2xl"></i>
+                    </a>
+
+                    <a href="/admin-edit-file/"
+                       class="p-2 text-slate-500 hover:text-emerald-600 transition-colors" title="Edit Knowledge">
+                        <i class="ph ph-pencil-simple-line text-2xl"></i>
+                    </a>
+
+                    <a href="/admin-logout/"
+                       class="group flex items-center gap-2 bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-600 hover:text-white transition-all duration-200 text-sm font-medium">
+                        <i class="ph ph-sign-out text-lg"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="py-8 px-4 sm:px-6">
+        <div class="max-w-5xl mx-auto">
+            
+            <!-- Page Header -->
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Chat Sessions</h2>
+                    <p class="text-slate-500 text-sm mt-1">Manage and review user interactions.</p>
+                </div>
+                <div class="bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm text-sm font-medium text-slate-600">
+                    Total Sessions: <span class="text-indigo-600 font-bold">{{ sessions|length }}</span>
+                </div>
+            </div>
+
+            <!-- ACCORDION LIST -->
+            <div class="flex flex-col gap-3">
+
+                {% for session in sessions %}
+                <!-- Single Session Card -->
+                <div x-data="{ open: false }" 
+                     class="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                    
+                    <!-- Header (Always Visible / Clickable) -->
+                    <button @click="open = !open" 
+                            class="w-full flex items-center justify-between p-4 sm:px-6 bg-white hover:bg-slate-50 transition-colors cursor-pointer text-left focus:outline-none">
+                        
+                        <div class="flex items-center gap-4">
+                            <!-- Avatar / Icon -->
+                            <div class="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100 shrink-0">
+                                <i class="ph ph-user text-indigo-600 text-xl"></i>
+                            </div>
+                            
+                            <!-- User Info -->
+                            <div>
+                                <h3 class="font-semibold text-slate-900 truncate max-w-[150px] sm:max-w-xs">
+                                    {{ session.username }}
+                                </h3>
+                                <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                    <i class="ph ph-clock"></i>
+                                    <span>{{ session.updated_at|date:"M d, Y • H:i" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side Indicators -->
+                        <div class="flex items-center gap-4">
+                            <!-- Message Count Badge -->
+                            <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+                                <i class="ph ph-chat-teardrop-text text-slate-400"></i>
+                                {{ session.history|length }} msgs
+                            </div>
+
+                            <!-- Chevron -->
+                            <div class="text-slate-400 transition-transform duration-300" 
+                                 :class="open ? 'rotate-180 text-indigo-600' : ''">
+                                <i class="ph ph-caret-down text-xl"></i>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Expanded Content (Accordion Body) -->
+                    <div x-show="open" 
+                         x-collapse 
+                         x-cloak
+                         class="border-t border-slate-100 bg-slate-50/50">
+                        <div class="p-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            
+                            <!-- Stats / Info -->
+                            <div class="grid grid-cols-2 gap-4 sm:flex sm:gap-8 text-sm">
+                                <div>
+                                    <span class="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Messages</span>
+                                    <span class="font-medium text-slate-800 flex items-center gap-1">
+                                        {{ session.history|length }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-slate-400 font-semibold uppercase tracking-wider">Status</span>
+                                    <span class="font-medium text-emerald-600 flex items-center gap-1">
+                                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div> Active
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <a href="/admin_chat_details/{{ session.username }}/" 
+                               class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm shadow-indigo-200 transition-all active:scale-95 w-full sm:w-auto">
+                                <span>View Full Conversation</span>
+                                <i class="ph ph-arrow-right font-bold"></i>
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+                {% empty %}
+                <!-- Empty State -->
+                <div class="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
+                    <div class="bg-slate-50 p-4 rounded-full inline-flex mb-4">
+                        <i class="ph ph-chats-teardrop text-3xl text-slate-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-slate-900">No sessions found</h3>
+                    <p class="text-slate-500 text-sm mt-1">There are currently no active chat histories.</p>
+                </div>
+                {% endfor %}
+
+            </div>
+            
+            <!-- Footer Note -->
+            <div class="mt-8 text-center">
+                <p class="text-xs text-slate-400">
+                    Admin Panel • {{ admin_username }}
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>

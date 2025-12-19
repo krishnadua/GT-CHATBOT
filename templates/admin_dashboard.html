@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Golden Tree</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            500: '#f59e0b', // Primary Gold
+                            600: '#d97706',
+                            700: '#b45309',
+                            900: '#78350f',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            /* Warm, stone-like background for the "Tree" theme */
+            background-color: #fafaf9; 
+            background-image: radial-gradient(#e7e5e4 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <!-- NAVBAR -->
+    <!-- Sticky top, frosted glass effect -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-brand-100 p-2 rounded-lg text-brand-600">
+                        <i class="fa-solid fa-tree text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">
+                        Golden <span class="text-brand-600">Tree</span>
+                    </h1>
+                </div>
+
+                <!-- User Controls -->
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex flex-col text-right">
+                        <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Logged in as</span>
+                        <span class="text-sm font-semibold text-gray-700">{{ admin_username }}</span>
+                    </div>
+                    <div class="h-8 w-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold shadow-md">
+                        {{ admin_username|slice:":1"|upper }}
+                    </div>
+                    <div class="h-8 w-px bg-gray-300 mx-1"></div> <!-- Divider -->
+                    <a href="/admin-logout/"
+                       class="group flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 shadow-sm">
+                        <i class="fa-solid fa-arrow-right-from-bracket group-hover:translate-x-1 transition-transform"></i>
+                        <span class="font-medium text-sm">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <!-- flex-grow ensures footer stays at bottom even if content is short -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full animate-fade-in">
+
+        <!-- Header -->
+        <div class="mb-10">
+            <h2 class="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
+            <p class="text-gray-500 mt-1">Manage your application content and user interactions.</p>
+        </div>
+
+        <!-- Messages Area -->
+        {% if messages %}
+            <div class="mb-8 space-y-3">
+            {% for message in messages %}
+                <div class="flex items-center p-4 rounded-xl border-l-4 shadow-sm bg-white
+                    {% if 'error' in message.tags %} border-red-500 text-red-700
+                    {% else %} border-green-500 text-green-700 {% endif %}">
+                    <i class="fa-solid {% if 'error' in message.tags %}fa-circle-exclamation{% else %}fa-circle-check{% endif %} mr-3 text-lg"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- DASHBOARD GRID -->
+        <!-- md:grid-cols-2 limits width, lg:gap-8 adds spacing -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+
+            <!-- CARD 1: Profiles & Chats -->
+            <a href="/admin-show-chat/" class="group relative bg-white rounded-2xl p-8 border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+                <!-- Background decoration circle -->
+                <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-blue-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div class="relative flex items-start space-x-6">
+                    <!-- Icon Box -->
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-inner">
+                            <i class="fa-solid fa-users-viewfinder text-2xl"></i>
+                        </span>
+                    </div>
+                    <!-- Text -->
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Profiles & Chats</h3>
+                        <p class="mt-2 text-gray-500 text-sm leading-relaxed">
+                            View registered users, monitor active sessions, and manage customer support logs.
+                        </p>
+                        <div class="mt-4 flex items-center text-sm font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                            Access Module <i class="fa-solid fa-arrow-right ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- CARD 2: Knowledge Editor -->
+            <a href="/admin-edit-file/" class="group relative bg-white rounded-2xl p-8 border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+                <!-- Background decoration circle -->
+                <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-brand-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+
+                <div class="relative flex items-start space-x-6">
+                    <!-- Icon Box -->
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-brand-50 text-brand-600 group-hover:bg-brand-500 group-hover:text-white transition-colors duration-300 shadow-inner">
+                            <i class="fa-solid fa-book-open-reader text-2xl"></i>
+                        </span>
+                    </div>
+                    <!-- Text -->
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-brand-600 transition-colors">Edit Knowledge</h3>
+                        <p class="mt-2 text-gray-500 text-sm leading-relaxed">
+                            Update the AI knowledge base, modify system rules, and upload new data files.
+                        </p>
+                        <div class="mt-4 flex items-center text-sm font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                            Access Module <i class="fa-solid fa-arrow-right ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Quick Stats Row (Optional Visual Filler) -->
+        <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white/60 p-4 rounded-xl border border-gray-200 text-center text-sm text-gray-500">
+                <i class="fa-solid fa-shield-halved text-brand-500 mb-1"></i><br>Secure Connection
+            </div>
+            <div class="bg-white/60 p-4 rounded-xl border border-gray-200 text-center text-sm text-gray-500">
+                <i class="fa-solid fa-server text-brand-500 mb-1"></i><br>System Active
+            </div>
+            <div class="bg-white/60 p-4 rounded-xl border border-gray-200 text-center text-sm text-gray-500">
+                <i class="fa-regular fa-clock text-brand-500 mb-1"></i><br>Last Login: Today
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-400 text-sm">
+                &copy; 2024 Golden Tree Admin. All rights reserved.
+            </p>
+            <div class="flex space-x-6 mt-4 md:mt-0 text-gray-400">
+                <a href="#" class="hover:text-brand-600 transition"><i class="fa-solid fa-life-ring"></i> Support</a>
+                <a href="#" class="hover:text-brand-600 transition"><i class="fa-solid fa-lock"></i> Privacy</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

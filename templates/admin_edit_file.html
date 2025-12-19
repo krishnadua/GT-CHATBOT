@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Edit Knowledge</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js (For animations/interactivity) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        /* Custom Scrollbar for the textarea */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
+
+    <!-- NAVBAR -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                
+                <!-- Logo / Title -->
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow-sm">
+                        <i class="ph ph-pencil-simple-line text-xl"></i>
+                    </div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 hidden sm:block">
+                        Knowledge Editor
+                    </h1>
+                </div>
+
+                <!-- Right Side Actions -->
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <!-- User Info -->
+                    <div class="hidden md:flex flex-col items-end mr-2">
+                        <span class="text-xs text-slate-500 uppercase font-bold tracking-wider">Admin</span>
+                        <span class="text-sm font-medium text-slate-700">{{ admin_username }}</span>
+                    </div>
+
+                    <!-- Navigation Icons -->
+                    <a href="{% url 'admin_dashboard' %}" 
+                       class="p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-lg hover:bg-slate-50" 
+                       title="Dashboard">
+                        <i class="ph ph-squares-four text-2xl"></i>
+                    </a>
+
+                    <a href="{% url 'admin_show_chat' %}"
+                       class="p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-lg hover:bg-slate-50" 
+                       title="Show Chats">
+                        <i class="ph ph-chats-circle text-2xl"></i>
+                    </a>
+
+                    <div class="h-6 w-px bg-slate-200 mx-1"></div>
+
+                    <a href="{% url 'admin_logout' %}"
+                       class="group flex items-center gap-2 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all duration-200 text-sm font-medium">
+                        <i class="ph ph-sign-out text-lg"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="py-8 px-4 sm:px-6">
+        <div class="max-w-5xl mx-auto">
+
+            <!-- ALERT MESSAGES (With Animation) -->
+            {% if messages %}
+            <div class="mb-6 flex flex-col gap-2">
+                {% for message in messages %}
+                <div x-data="{ show: true }" 
+                     x-show="show" 
+                     x-transition.duration.300ms
+                     class="flex items-center justify-between p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-800 shadow-sm">
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="bg-emerald-100 p-1 rounded-full">
+                            <i class="ph ph-check-circle text-emerald-600 text-xl"></i>
+                        </div>
+                        <span class="text-sm font-medium">{{ message }}</span>
+                    </div>
+
+                    <button @click="show = false" class="text-emerald-400 hover:text-emerald-700">
+                        <i class="ph ph-x text-lg"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- EDITOR CARD -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+
+                <!-- Card Header -->
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="ph ph-file-text text-slate-400"></i>
+                            File Content
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Edit the system knowledge base directly.
+                        </p>
+                    </div>
+                    
+                    <!-- Optional: Last Modified or Status Badge -->
+                    <div class="hidden sm:flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">
+                        <i class="ph ph-pencil-simple"></i>
+                        Editable Mode
+                    </div>
+                </div>
+
+                <!-- Form Area -->
+                <form method="post" class="flex flex-col h-full">
+                    {% csrf_token %}
+
+                    <div class="relative group p-0">
+                        <!-- Toolbar (Visual only) -->
+                        <div class="flex items-center gap-3 px-4 py-2 bg-slate-50 border-b border-slate-100 text-slate-400 text-sm">
+                            <span class="text-xs font-mono text-slate-500">FORMAT: RAW TEXT / MARKDOWN</span>
+                        </div>
+
+                        <!-- TEXTAREA -->
+                        <!-- Added font-mono for better code/data readability -->
+                        <textarea 
+                            name="content"
+                            rows="20"
+                            placeholder="Enter knowledge base content here..."
+                            class="w-full p-4 sm:p-6 bg-white text-slate-700 font-mono text-sm leading-relaxed
+                                   focus:outline-none focus:ring-0 resize-y min-h-[400px]"
+                        >{{ content }}</textarea>
+                    </div>
+
+                    <!-- Footer / Actions -->
+                    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                        <div class="text-xs text-slate-400 hidden sm:block">
+                            Make sure to verify formatting before saving.
+                        </div>
+
+                        <button type="submit"
+                            class="group relative inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 text-sm font-semibold w-full sm:w-auto justify-center">
+                            <i class="ph ph-floppy-disk text-lg animate-pulse group-hover:animate-none"></i>
+                            <span>Save Changes</span>
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+
+            <!-- Footer Note -->
+            <div class="mt-8 text-center">
+                <p class="text-xs text-slate-400">
+                    Admin Panel • System v1.0
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>

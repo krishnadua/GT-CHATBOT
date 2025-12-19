@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>404 • Page Not Found</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #f2f2f2, #e0e0e0);
+            font-family: "Arial", sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0px 8px 25px rgba(0,0,0,0.15);
+            animation: fadeIn 1s ease;
+        }
+
+        h1 {
+            font-size: 72px;
+            font-weight: bold;
+            color: #ff5252;
+            animation: pop 0.8s ease;
+        }
+
+        p {
+            font-size: 20px;
+            margin-top: 15px;
+            color: #444;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 28px;
+            background: #ff5252;
+            color: white;
+            font-size: 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        a:hover {
+            background: #e64040;
+            transform: scale(1.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 52px;
+            }
+            p {
+                font-size: 18px;
+            }
+            a {
+                font-size: 16px;
+                padding: 10px 22px;
+            }
+            .container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>404</h1>
+        <p>Oops! The page you are looking for doesn’t exist or has been moved.</p>
+        <a href="/">Go Back Home</a>
+    </div>
+</body>
+</html>

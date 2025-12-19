@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Golden Tree - WhatsApp View</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* --- WHATSAPP CORE VARIABLES --- */
+    :root {
+        --wa-bg: #efeae2;
+        --wa-header: #f0f2f5;
+        --wa-user-bubble: #d9fdd3;
+        --wa-bot-bubble: #ffffff;
+        --wa-teal: #008069;
+        --wa-blue-tick: #53bdeb;
+        --wa-text-primary: #111b21;
+        --wa-text-secondary: #667781;
+        --footer-height: 62px; /* Updated to match min-h-[62px] for precision */
+    }
+    body { font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    /* --- SCROLLBAR --- */
+    ::-webkit-scrollbar { width: 6px !important; }
+    ::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-track { background: transparent; }
+    /* --- BACKGROUND PATTERN --- */
+    .bg-doodle {
+        background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
+        opacity: 0.4;
+    }
+    /* --- MESSAGE TAILS --- */
+    .tail-container { position: absolute; top: 0; z-index: 10; }
+    .tail-out { right: -8px; fill: var(--wa-user-bubble); }
+    .tail-in { left: -8px; fill: var(--wa-bot-bubble); }
+    /* --- DYNAMIC ACTION CONTAINER --- */
+    .action-html-wrapper {
+        margin-top: 8px;
+        padding: 10px;
+        background: #fdfdfd;
+        border: 1px solid #e9edef;
+        border-radius: 8px;
+        overflow: auto; /* Changed to auto to allow scrolling for full content visibility */
+        max-height: 300px; /* Limit height to prevent excessive expansion */
+    }
+    /* --- ANIMATIONS --- */
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 128, 105, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 128, 105, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 128, 105, 0); }
+    }
+    .mic-active { animation: pulse-green 1.5s infinite; background-color: #00a884 !important; }
+    /* --- MODAL --- */
+    .modal-backdrop { background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px); }
+    /* --- THREE DOTS DROPDOWN --- */
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        min-width: 120px;
+        z-index: 30;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.2s ease;
+    }
+    .dropdown-menu.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .dropdown-item {
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--wa-text-primary);
+        transition: background 0.2s;
+    }
+    .dropdown-item:hover {
+        background: #f0f2f5;
+    }
+    /* --- EMOJI PICKER --- */
+    .emoji-picker {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e9edef;
+        border-radius: 8px 8px 0 0;
+        padding: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+        z-index: 20;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+    .emoji-picker.show {
+        display: block;
+    }
+    .emoji-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+        gap: 4px;
+    }
+    .emoji-item {
+        font-size: 24px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background 0.2s;
+        text-align: center;
+    }
+    .emoji-item:hover {
+        background: #f0f2f5;
+    }
+    /* --- SCROLL TO BOTTOM BUTTON --- */
+    .scroll-to-bottom {
+        position: fixed;
+        bottom: calc(var(--footer-height) + 20px + env(safe-area-inset-bottom, 0px));
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        background: var(--wa-teal);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 40;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        font-size: 14px;
+    }
+    .scroll-to-bottom.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    .scroll-to-bottom:hover {
+        background: #006d5b;
+        transform: scale(1.05);
+    }
+    /* --- LAYOUT FIXES FOR DESKTOP/INSPECTOR & MOBILE --- */
+    html {
+        height: -webkit-fill-available;
+    }
+    html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    body {
+        display: flex;
+        flex-direction: column;
+        height: -webkit-fill-available;
+        height: 100vh; /* Fallback */
+        width: 100vw;
+        padding-bottom: env(safe-area-inset-bottom, 0px); /* iOS bottom safe area */
+    }
+    .app-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        max-width: 100%;
+        width: 100%;
+    }
+    main {
+        flex: 1;
+        min-height: 0; /* Allow flex shrink */
+        display: flex;
+        flex-direction: column;
+        padding-bottom: calc(var(--footer-height) * 1.5 + env(safe-area-inset-bottom, 0px)); /* Increased multiplier for extra buffer */
+        padding-top: 1rem; /* Added top padding to ensure first message visibility below header */
+        position: relative; /* Ensure padding applies correctly */
+    }
+    #chatbox {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        scroll-behavior: smooth;
+        padding: 1rem; /* Consistent padding for messages */
+        padding-bottom: calc(var(--footer-height) + 2rem); /* Extra generous bottom padding to prevent hiding */
+        z-index: 10; /* Above background */
+        /* Ensure chatbox doesn't get cut off by fixed footer */
+        box-sizing: border-box;
+    }
+    #footerContainer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        flex-shrink: 0;
+        z-index: 30; /* High z-index to stay on top */
+        padding-bottom: env(safe-area-inset-bottom, 0px); /* iOS bottom safe area */
+        min-height: var(--footer-height);
+    }
+    /* Input wrapper adjustments for compact WhatsApp-like height */
+    #footerContainer .input-wrapper {
+        height: 40px; /* Compact height matching WhatsApp */
+        align-items: center;
+        padding: 0 0.5rem; /* Reduced padding for more input space */
+        margin: 0 0.25rem; /* Small margin to balance buttons */
+        flex: 1; /* Take remaining space */
+        max-width: calc(100% - 80px); /* Ensure input doesn't overflow with buttons */
+    }
+    #footerContainer input#user_input {
+        height: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 15px;
+        line-height: 20px;
+        margin: 0; /* Ensure no extra margin */
+        width: 100%; /* Full width within wrapper */
+    }
+    /* Button padding consistency - smaller for better space */
+    #footerContainer button {
+        width: 36px; /* Slightly smaller buttons */
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0 0.125rem; /* Minimal margin */
+        flex-shrink: 0; /* Prevent shrinking */
+    }
+    /* Icon sizes - ensure they fit without overflow */
+    #footerContainer .fa-plus,
+    #footerContainer .fa-paper-plane,
+    #footerContainer .fa-microphone {
+        font-size: 16px; /* Smaller icons to fit better */
+    }
+    /* Safe Area Insets Support */
+    @supports (padding: env(safe-area-inset-top)) {
+        header {
+            padding-top: env(safe-area-inset-top);
+            height: calc(60px + env(safe-area-inset-top));
+        }
+    }
+    /* Mobile-specific fixes */
+    @media (max-width: 768px) {
+        html, body {
+            height: -webkit-fill-available;
+            height: 100vh; /* Fallback */
+            overflow: hidden; /* Prevent body scroll, rely on chatbox */
+        }
+        .app-container {
+            height: -webkit-fill-available !important;
+            height: 100vh !important; /* Fallback */
+            max-height: -webkit-fill-available;
+            max-height: 100vh; /* Fallback */
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1;
+            overflow: hidden; /* Ensure main doesn't scroll, only chatbox */
+            padding-bottom: calc(var(--footer-height) * 2 + env(safe-area-inset-bottom, 0px)); /* Doubled for mobile buffer */
+            padding-top: 1.5rem; /* Increased top padding for better visibility on mobile */
+        }
+        #footerContainer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 30;
+            flex-shrink: 0;
+            width: 100%;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            gap: 0; /* Zero gap for mobile to maximize input space */
+            padding: 0.25rem; /* Minimal overall padding */
+            display: flex; /* Ensure flex layout */
+            align-items: center;
+        }
+        #footerContainer button {
+            width: 32px; /* Even smaller buttons on mobile */
+            height: 32px;
+            margin: 0; /* Zero margin */
+        }
+        #footerContainer .input-wrapper {
+            margin: 0; /* Zero margin */
+            max-width: none; /* Remove max-width constraint */
+            flex: 1;
+        }
+        #footerContainer .fa-plus,
+        #footerContainer .fa-paper-plane,
+        #footerContainer .fa-microphone {
+            font-size: 14px; /* Smaller icons */
+        }
+        #user_input {
+            font-size: 16px; /* Prevent zoom on iOS Safari */
+            -webkit-appearance: none;
+        }
+        #chatbox {
+            padding: 1.5rem; /* Increased overall padding for better message visibility */
+            overscroll-behavior: contain; /* Prevent pull-to-refresh interference */
+            /* Extra mobile padding to ensure messages don't hide behind footer */
+            padding-bottom: calc(var(--footer-height) + 4rem); /* Significantly increased for mobile */
+        }
+        /* Android navigation bar adjustment */
+        @supports not (padding: env(safe-area-inset-bottom)) {
+            #footerContainer {
+                padding-bottom: 0;
+            }
+            main {
+                padding-bottom: calc(var(--footer-height) * 2); /* Fallback without safe-area */
+            }
+            /* Detect Android and add extra padding if needed */
+            body::after {
+                content: '';
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: env(keyboard-inset-height, 0px);
+                background: transparent;
+                z-index: -1;
+            }
+        }
+        .scroll-to-bottom {
+            bottom: calc(var(--footer-height) + 16px + env(safe-area-inset-bottom, 0px)); /* Slightly less on mobile */
+            width: 36px;
+            height: 36px;
+            right: 16px;
+        }
+    }
+    /* Desktop inspector fix: Handle resize/devtools */
+    @media (min-width: 769px) {
+        .app-container {
+            height: 100vh;
+            max-height: 100vh;
+        }
+        #footerContainer {
+            position: relative;
+            bottom: auto;
+            z-index: 20;
+            gap: 0.5rem; /* Slightly larger gap for desktop */
+            padding: 0.75rem;
+        }
+        main {
+            padding-bottom: var(--footer-height); /* Adjusted back for desktop relative footer */
+            padding-top: 2rem; /* Increased top padding for desktop */
+        }
+        /* Desktop input adjustments */
+        #footerContainer .input-wrapper {
+            height: 48px;
+        }
+        #footerContainer button {
+            width: 44px;
+            height: 44px;
+            margin: 0 0.25rem;
+        }
+        #footerContainer .fa-plus,
+        #footerContainer .fa-paper-plane,
+        #footerContainer .fa-microphone {
+            font-size: 18px; /* Slightly larger icons on desktop */
+        }
+        .scroll-to-bottom {
+            bottom: calc(var(--footer-height) + 24px + env(safe-area-inset-bottom, 0px)); /* Adjusted for relative footer */
+        }
+    }
+    /* Ensure no centering issues */
+    body > .app-container {
+        margin: 0;
+        align-self: stretch;
+    }
+</style>
+</head>
+<body>
+    <!-- === APP CONTAINER === -->
+    <div id="appContainer" class="app-container">
+        <!-- === HEADER === -->
+        <header class="bg-[#f0f2f5] h-[60px] px-4 py-2 flex items-center justify-between border-b border-[#e9edef] z-20 flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <!-- Avatar -->
+                <div class="w-10 h-10 rounded-full overflow-hidden bg-white cursor-pointer relative">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLLLH1AekDV2tiFEYQRWy2fPoVQjlJCYvHhQ&s" class="w-full h-full object-cover">
+                </div>
+                <!-- Info -->
+                <div class="flex flex-col justify-center">
+                    <h1 class="text-[#111b21] font-medium text-[16px] leading-tight">Golden Tree Assistant</h1>
+                    <span id="headerStatus" class="text-[#667781] text-[13px] leading-tight">online</span>
+                </div>
+            </div>
+      
+            <div class="relative">
+                <!-- Three Dots Icon -->
+                <button id="threeDotsBtn" class="text-[#54656f] p-2 hover:bg-gray-200 rounded-full transition text-xl" title="More options">
+                    <i class="fa-solid fa-ellipsis-v"></i>
+                </button>
+          
+                <!-- Dropdown Menu -->
+                <div id="dropdownMenu" class="dropdown-menu">
+                    <div class="dropdown-item" id="logoutMenuItem">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>Logout
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- === CHAT AREA === -->
+        <main class="flex-1 relative bg-[#efeae2] w-full overflow-hidden flex flex-col">
+            <!-- Background Doodle -->
+            <div class="absolute inset-0 bg-doodle pointer-events-none"></div>
+            <!-- Messages Scroll Area -->
+            <div id="chatbox" class="flex-1 overflow-y-auto p-4 md:p-[2rem_5rem] z-10 flex flex-col space-y-2 pb-6">
+          
+                <!-- Encryption Notice -->
+                <div class="flex justify-center mb-4 select-none">
+                    <div class="bg-[#ffeecd] text-[#54656f] text-[12px] px-3 py-1.5 rounded-lg shadow-sm text-center max-w-[90%] md:max-w-[60%]">
+                        <i class="fa-solid fa-lock text-[10px] mr-1"></i> Messages are end-to-end encrypted. No one outside of this chat can read or listen to them.
+                    </div>
+                </div>
+                <!-- Messages will be injected here via JS -->
+            </div>
+        </main>
+        <!-- === FOOTER (INPUT) === -->
+        <div id="footerContainer" class="bg-[#f0f2f5] min-h-[62px] flex items-center z-20 border-t border-[#e9edef] hidden flex-shrink-0">
+      
+            <!-- Plus Button -->
+            <button id="plusBtn" class="text-[#54656f] hover:bg-gray-200 rounded-full transition">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+            <!-- Input Wrapper -->
+            <div class="relative flex-1 bg-white rounded-lg flex items-center shadow-sm input-wrapper">
+                <input type="text" id="user_input" placeholder="Type a message"
+                    class="w-full bg-transparent border-none outline-none text-[#111b21] placeholder:text-[#667781] text-[15px]">
+          
+                <!-- Emoji Picker -->
+                <div id="emojiPicker" class="emoji-picker">
+                    <div class="emoji-grid">
+                        <!-- Common Emojis (expand as needed) -->
+                        <span class="emoji-item" data-emoji="😊">😊</span>
+                        <span class="emoji-item" data-emoji="😂">😂</span>
+                        <span class="emoji-item" data-emoji="❤️">❤️</span>
+                        <span class="emoji-item" data-emoji="👍">👍</span>
+                        <span class="emoji-item" data-emoji="🙌">🙌</span>
+                        <span class="emoji-item" data-emoji="🔥">🔥</span>
+                        <span class="emoji-item" data-emoji="🎉">🎉</span>
+                        <span class="emoji-item" data-emoji="😎">😎</span>
+                        <span class="emoji-item" data-emoji="🤔">🤔</span>
+                        <span class="emoji-item" data-emoji="😢">😢</span>
+                        <span class="emoji-item" data-emoji="👏">👏</span>
+                        <span class="emoji-item" data-emoji="✨">✨</span>
+                        <span class="emoji-item" data-emoji="🚀">🚀</span>
+                        <span class="emoji-item" data-emoji="🌟">🌟</span>
+                        <span class="emoji-item" data-emoji="💯">💯</span>
+                        <span class="emoji-item" data-emoji="😍">😍</span>
+                        <!-- Add more rows as needed -->
+                    </div>
+                </div>
+            </div>
+            <!-- Send Button (Hidden by default, shown when typing) -->
+            <button id="send_btn" onclick="sendMessage()" class="hidden text-[#54656f] hover:bg-gray-200 rounded-full transition">
+                <i class="fa-solid fa-paper-plane text-[#00a884]"></i>
+            </button>
+            <!-- Mic Button -->
+            <button id="mic_btn" onclick="startListening()" class="text-[#54656f] rounded-full transition hover:bg-gray-200">
+                <i class="fa-solid fa-microphone"></i>
+            </button>
+        </div>
+    </div>
+    <!-- === SCROLL TO BOTTOM BUTTON === -->
+    <button id="scrollToBottomBtn" class="scroll-to-bottom" title="Scroll to bottom">
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+    <!-- === USERNAME MODAL (WhatsApp Web Login Style) === -->
+    <div id="usernameModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white w-full max-w-md mx-4 rounded-xl shadow-2xl overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+            <div class="bg-[#00a884] p-6 text-center">
+                <div class="w-16 h-16 bg-white rounded-full mx-auto mb-3 flex items-center justify-center text-[#00a884] text-2xl shadow-lg">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <h2 class="text-white text-xl font-medium">Welcome to Golden Tree</h2>
+                <p class="text-white/80 text-sm mt-1">Enter your credentials to connect</p>
+            </div>
+      
+            <form class="p-8 space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-[#008069] uppercase mb-1">Username</label>
+                    <input type="text" id="usernameInput" class="w-full border-b-2 border-[#e9edef] py-2 focus:border-[#00a884] outline-none transition text-[#111b21]" placeholder="Type your name">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-[#008069] uppercase mb-1">Password</label>
+                    <input type="password" id="passwordInput" class="w-full border-b-2 border-[#e9edef] py-2 focus:border-[#00a884] outline-none transition text-[#111b21]" placeholder="Type your password">
+                </div>
+                <!-- Error Message Display -->
+                <div id="errorMessage" class="hidden text-red-500 text-sm p-2 bg-red-50 rounded border border-red-200"></div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" id="cancelUsernameBtn" class="flex-1 py-2.5 rounded-full border border-[#e9edef] text-[#008069] font-medium hover:bg-[#f0f2f5] transition">Cancel</button>
+                    <button type="button" id="setUsernameBtn" class="flex-1 py-2.5 rounded-full bg-[#00a884] text-white font-medium hover:bg-[#008f6f] shadow-md transition">Start Chatting</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- === JAVASCRIPT === -->
+    <script>
+    // --- HELPER FUNCTIONS ---
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    function getCurrentTime() {
+        return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    function insertEmojiAtCursor(emoji) {
+        const input = document.getElementById('user_input');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const textBefore = input.value.substring(0, start);
+        const textAfter = input.value.substring(end);
+        input.value = textBefore + emoji + textAfter;
+        input.focus();
+        input.setSelectionRange(start + emoji.length, start + emoji.length);
+        // Trigger input event to show send button
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    function showError(msg) {
+        // Silently log errors instead of showing to user
+        console.error('Login Error:', msg);
+    }
+    function hideError() {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.classList.add('hidden');
+        errorDiv.textContent = '';
+    }
+    // --- SAFE AREA HELPER ---
+    function getSafeAreaInset(inset) {
+        const elem = document.createElement('div');
+        elem.style.cssText = 'position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden;';
+        if (inset === 'bottom') {
+            elem.style.paddingBottom = 'env(safe-area-inset-bottom)';
+        } else {
+            elem.style.paddingTop = 'env(safe-area-inset-top)';
+        }
+        document.body.appendChild(elem);
+        const computed = getComputedStyle(elem);
+        const value = parseFloat(computed[inset === 'bottom' ? 'paddingBottom' : 'paddingTop']);
+        document.body.removeChild(elem);
+        return value || 0;
+    }
+    // --- GLOBALS ---
+    const chatbox = document.getElementById("chatbox");
+    const userInput = document.getElementById("user_input");
+    const sendBtn = document.getElementById("send_btn");
+    const micBtn = document.getElementById("mic_btn");
+    const usernameModal = document.getElementById("usernameModal");
+    const usernameInput = document.getElementById("usernameInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const setUsernameBtn = document.getElementById("setUsernameBtn");
+    const cancelUsernameBtn = document.getElementById("cancelUsernameBtn");
+    const headerStatus = document.getElementById("headerStatus");
+    const footerContainer = document.getElementById("footerContainer");
+    const threeDotsBtn = document.getElementById("threeDotsBtn");
+    const dropdownMenu = document.getElementById("dropdownMenu");
+    const plusBtn = document.getElementById("plusBtn");
+    const emojiPicker = document.getElementById("emojiPicker");
+    const scrollBtn = document.getElementById("scrollToBottomBtn");
+    let isTyping = false;
+    let currentUsername = localStorage.getItem("username");
+    let chatHistory = [];
+    let currentSpeech = null;
+    let typingCounter = 0;
+    let dropdownVisible = false;
+    // --- SCROLL TO BOTTOM LOGIC ---
+    function toggleScrollBtn() {
+        const threshold = 100;
+        if (chatbox.scrollTop < chatbox.scrollHeight - chatbox.clientHeight - threshold) {
+            scrollBtn.classList.add('show');
+        } else {
+            scrollBtn.classList.remove('show');
+        }
+    }
+    scrollBtn.addEventListener('click', () => {
+        scrollToBottom();
+    });
+    function scrollToBottom() {
+        chatbox.scrollTo({ top: chatbox.scrollHeight, behavior: 'smooth' });
+        setTimeout(toggleScrollBtn, 300);
+    }
+    chatbox.addEventListener('scroll', toggleScrollBtn);
+    // --- OFFLINE HANDLING (Client-Side Only - No Backend Changes) ---
+    let isOfflineMode = false; // Track "offline" state
+    let offlineQueue = []; // Queue messages during offline
+    let lastReplyTime = 0; // For timeout detection
+    const OFFLINE_KEYWORDS = ['help', 'default_greeting', 'trouble connecting']; // Fallback reply hints
+    const MAX_RESPONSE_TIME = 10000; // 10s timeout threshold for "offline" inference
+    // Update status display (reuse your headerStatus)
+    function updateStatus(statusText, isOffline = false) {
+        headerStatus.innerText = statusText;
+        headerStatus.classList.remove('text-[#00a884]', 'animate-pulse'); // Reset
+        if (isOffline) {
+            headerStatus.classList.add('text-[#ff0000]'); // Red for offline
+            footerContainer.classList.add('opacity-50'); // Dim input during offline
+        } else {
+            headerStatus.classList.add('text-[#00a884]'); // Green/online
+            footerContainer.classList.remove('opacity-50');
+        }
+    }
+    // Check if reply indicates fallback/error (offline trigger)
+    function isFallbackReply(reply) {
+        const lowerReply = reply.toLowerCase();
+        return OFFLINE_KEYWORDS.some(kw => lowerReply.includes(kw)) ||
+               reply.includes('Error') || // Generic backend fallback
+               reply.length < 20; // Short replies often fallbacks
+    }
+    // Retry queued messages (silent, on reconnect)
+    function retryQueue() {
+        if (offlineQueue.length > 0 && !isOfflineMode) {
+            const queuedMsg = offlineQueue.shift();
+            sendMessage(queuedMsg); // Recursive, but limits to 1 at a time
+            if (offlineQueue.length > 0) {
+                setTimeout(retryQueue, 2000); // Stagger retries
+            }
+        }
+    }
+    // --- UI LOGIC: INPUT MONITORING ---
+    // Toggle between Mic and Send icon based on input
+    userInput.addEventListener('input', () => {
+        if(userInput.value.trim().length > 0) {
+            sendBtn.classList.remove('hidden');
+            micBtn.classList.add('hidden');
+        } else {
+            sendBtn.classList.add('hidden');
+            micBtn.classList.remove('hidden');
+        }
+    });
+    // --- THREE DOTS DROPDOWN ---
+    threeDotsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdownVisible = !dropdownVisible;
+        dropdownMenu.classList.toggle('show', dropdownVisible);
+    });
+    document.addEventListener('click', () => {
+        if (dropdownVisible) {
+            dropdownVisible = false;
+            dropdownMenu.classList.remove('show');
+        }
+    });
+    document.getElementById('logoutMenuItem').addEventListener('click', logout);
+    // --- EMOJI PICKER ---
+    plusBtn.addEventListener('click', () => {
+        emojiPicker.classList.toggle('show');
+    });
+    // Close emoji picker on input click or outside
+    userInput.addEventListener('focus', () => {
+        setTimeout(() => emojiPicker.classList.remove('show'), 100);
+    });
+    document.addEventListener('click', (e) => {
+        if (!plusBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
+            emojiPicker.classList.remove('show');
+        }
+    });
+    // Emoji selection
+    emojiPicker.addEventListener('click', (e) => {
+        if (e.target.classList.contains('emoji-item')) {
+            insertEmojiAtCursor(e.target.dataset.emoji);
+            emojiPicker.classList.remove('show');
+        }
+    });
+    // --- SPEECH SYNTHESIS (Unchanged Logic) ---
+    function detectLanguage(text) {
+        if (/[\u0900-\u097F]/.test(text)) return 'hi-IN';
+        return 'en-IN';
+    }
+    function speakText(text, lang = 'en-IN') {
+        if (!('speechSynthesis' in window)) return;
+        speechSynthesis.cancel();
+  
+        // Remove HTML tags for speech
+        const cleanText = text.replace(/<[^>]*>?/gm, '');
+  
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = lang;
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        const voices = speechSynthesis.getVoices();
+        let preferredVoice = voices.find(v => v.name.includes('Google') && v.lang === lang) ||
+                             voices.find(v => v.lang === lang);
+  
+        if (preferredVoice) utterance.voice = preferredVoice;
+        utterance.onstart = () => {
+            headerStatus.innerText = "recording audio..."; // WhatsApp style status
+            headerStatus.classList.add("text-[#00a884]", "animate-pulse");
+        };
+        utterance.onend = () => {
+            headerStatus.innerText = "online";
+            headerStatus.classList.remove("text-[#00a884]", "animate-pulse");
+        };
+        currentSpeech = utterance;
+        speechSynthesis.speak(utterance);
+    }
+    // Ensure voices load
+    if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.onvoiceschanged = () => console.log("Voices loaded");
+    }
+    // --- USERNAME HANDLING ---
+    function showUsernameModal() {
+        usernameModal.classList.remove("hidden");
+        usernameInput.focus();
+        hideError(); // Clear any previous errors
+    }
+    function hideUsernameModal() {
+        usernameModal.classList.add("hidden");
+    }
+    async function setUsername(name) {
+        const cleanName = name.trim();
+        const cleanPassword = passwordInput.value.trim();
+  
+        hideError(); // Clear error before validation
+   
+        if (!cleanName || cleanName.length < 2) {
+            showError("Please enter a valid username (at least 2 characters).");
+            usernameInput.focus();
+            return false;
+        }
+        if (!cleanPassword) {
+            showError("Password is required.");
+            passwordInput.focus();
+            return false;
+        }
+        try {
+            const response = await fetch('/validate-username/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ username: cleanName, password: cleanPassword })
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (!data.valid) {
+                showError(data.message || 'Validation failed. Please check your username and password.');
+                return false;
+            }
+            localStorage.setItem("username", cleanName);
+            currentUsername = cleanName;
+            hideUsernameModal();
+            showFooter(); // Show footer after successful login
+            loadHistory();
+            return true;
+        } catch (err) {
+            console.error('Validation error:', err);
+            // Fallback for demo if backend fails - no popup, just log
+            localStorage.setItem("username", cleanName);
+            currentUsername = cleanName;
+            hideUsernameModal();
+            showFooter(); // Show footer
+            console.log('Fallback login for:', cleanName, '- Check console for backend issues');
+            return true;
+        }
+    }
+    function showFooter() {
+        footerContainer.classList.remove('hidden');
+        // Force reflow for mobile/desktop consistency
+        footerContainer.offsetHeight;
+        // Resize handler to fix inspector issues and ensure scroll
+        window.dispatchEvent(new Event('resize'));
+        // Ensure chatbox scrolls to bottom after footer show
+        setTimeout(() => {
+            adjustChatboxPadding();
+            scrollToBottom();
+        }, 100);
+        console.log('showFooter called - footer should now be visible');
+    }
+    setUsernameBtn.onclick = () => setUsername(usernameInput.value);
+    cancelUsernameBtn.onclick = () => {
+        // No alert, just refocus
+        usernameInput.focus();
+    };
+    usernameInput.onkeypress = (e) => { if (e.key === "Enter") passwordInput.focus(); };
+    passwordInput.onkeypress = (e) => { if (e.key === "Enter") setUsername(usernameInput.value); };
+    // Clear error on input change
+    usernameInput.addEventListener('input', hideError);
+    passwordInput.addEventListener('input', hideError);
+    // Handle window resize for desktop inspector fix and mobile keyboard
+    window.addEventListener('resize', () => {
+        if (footerContainer.classList.contains('hidden') === false) {
+            showFooter(); // Re-apply to fix layout
+        }
+        // Re-scroll to bottom on resize (e.g., keyboard open/close) - Enhanced for footer visibility
+        setTimeout(() => {
+            adjustChatboxPadding(); // New: Dynamic padding adjustment
+            scrollToBottom();
+        }, 300);
+    });
+    // New: Dynamic padding adjustment to prevent message hiding behind footer
+    function adjustChatboxPadding() {
+        const footerHeight = footerContainer.offsetHeight || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--footer-height'));
+        const safeBottom = getSafeAreaInset('bottom');
+        const main = document.querySelector('main');
+        main.style.paddingBottom = `${footerHeight * 1.5 + safeBottom}px`; // Increased buffer
+        const chatboxElem = document.getElementById('chatbox');
+        const extraPadding = safeBottom / 16 + 2; // Convert px to rem + extra
+        chatboxElem.style.paddingBottom = `${extraPadding}rem`; // Dynamic extra space for last message
+        chatboxElem.style.paddingTop = '1.5rem'; // Ensure top visibility
+        // Force reflow
+        main.offsetHeight;
+        chatboxElem.offsetHeight;
+        // If was at bottom, stay at bottom after padding change
+        const wasAtBottom = chatbox.scrollTop + chatbox.clientHeight >= chatbox.scrollHeight - 1;
+        if (wasAtBottom) {
+            setTimeout(() => {
+                scrollToBottom();
+            }, 0);
+        }
+    }
+    // Listen for focus on input to handle keyboard and scroll to bottom
+    userInput.addEventListener('focus', () => {
+        setTimeout(() => {
+            adjustChatboxPadding(); // Adjust on focus for keyboard
+            scrollToBottom();
+            // Ensure input is visible above keyboard
+            userInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 300);
+    });
+    // Handle visual viewport for better keyboard handling on mobile
+    if ('visualViewport' in window) {
+        window.visualViewport.addEventListener('resize', () => {
+            setTimeout(() => {
+                adjustChatboxPadding(); // Dynamic adjust on viewport change
+                scrollToBottom();
+            }, 100);
+        });
+    }
+    function logout() {
+        localStorage.removeItem("username");
+        currentUsername = null;
+        chatHistory = [];
+        chatbox.innerHTML = '<div class="flex justify-center mb-4 select-none"><div class="bg-[#ffeecd] text-[#54656f] text-[12px] px-3 py-1.5 rounded-lg shadow-sm text-center max-w-[90%] md:max-w-[60%]"><i class="fa-solid fa-lock text-[10px] mr-1"></i> Messages are end-to-end encrypted.</div></div>';
+        footerContainer.classList.add('hidden'); // Hide footer on logout
+        showUsernameModal();
+        usernameInput.value = '';
+        passwordInput.value = '';
+        speechSynthesis.cancel();
+        dropdownMenu.classList.remove('show');
+        scrollBtn.classList.remove('show');
+    }
+    if (!currentUsername) {
+        showUsernameModal();
+    } else {
+        showFooter();
+        loadHistory();
+    }
+    // Initial padding adjustment on load
+    setTimeout(() => {
+        adjustChatboxPadding();
+        toggleScrollBtn();
+    }, 500);
+    // --- HISTORY LOADING ---
+    async function loadHistory() {
+        if (!currentUsername) return;
+        try {
+            const response = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`);
+            if (response.ok) {
+                const data = await response.json();
+                chatHistory = data.history || [];
+                chatHistory.forEach(msg => renderMessage(msg.role, msg.content, msg.action_html, true, msg.audio_url));
+                // Scroll to bottom after loading history
+                setTimeout(() => {
+                    adjustChatboxPadding(); // Ensure padding after history load
+                    scrollToBottom();
+                }, 100);
+            }
+        } catch (err) {
+            console.error("Failed to load history", err);
+        }
+    }
+    // --- DYNAMIC ACTIONS (QR, Camera, etc) ---
+    function executeDynamicAction(actionHtml) {
+        if (!actionHtml) return;
+  
+        // Find the last message and append to it
+        const lastMsg = chatbox.lastElementChild;
+        const container = document.createElement('div');
+        container.className = 'action-html-wrapper'; // New styles
+        container.innerHTML = actionHtml;
+        // Append to the inner bubble div of the last message
+        const bubble = lastMsg.querySelector('.message-bubble-content');
+        if(bubble) {
+            bubble.appendChild(container);
+        } else {
+            // Fallback
+            lastMsg.appendChild(container);
+        }
+        // Execute Scripts
+        container.querySelectorAll('script').forEach(oldScript => {
+            const newScript = document.createElement('script');
+            newScript.textContent = oldScript.textContent || oldScript.innerHTML;
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+        setTimeout(() => {
+            adjustChatboxPadding(); // Re-adjust after dynamic content
+            scrollToBottom();
+        }, 100);
+    }
+    // --- RENDER MESSAGE (Pure WhatsApp Style) ---
+    function renderMessage(role, text, actionHtml = null, isHistory = false, audioUrl = null) {
+        const isUser = role === "user";
+  
+        const wrapper = document.createElement("div");
+        wrapper.className = `flex w-full mb-1 ${isUser ? 'justify-end' : 'justify-start'}`;
+  
+        // Tail SVG path
+        const tailSvg = isUser
+            ? `<svg viewBox="0 0 8 13" width="8" height="13" class="tail-container tail-out"><path opacity="0.13" d="M5.188 1H0v11.193l6.467-8.625C7.526 2.156 6.958 1 6.145 1h-.957z"></path><path d="M5.188 0H0v11.193l6.467-8.625C7.526 1.156 6.958 0 6.145 0h-.957z"></path></svg>`
+            : `<svg viewBox="0 0 8 13" width="8" height="13" class="tail-container tail-in"><path opacity="0.13" d="M1.533 3.568L8 12.193V1H2.812C1.042 1 .474 2.156 1.533 3.568z"></path><path d="M1.533 2.568L8 11.193V0H2.812C1.042 0 .474 1.156 1.533 2.568z"></path></svg>`;
+        // Ticks for user
+        const ticks = isUser ? `<span class="text-[#53bdeb] ml-1"><i class="fa-solid fa-check-double text-[10px]"></i></span>` : '';
+        // Typing ID for bot
+        const typingId = `temp-typing-${++typingCounter}`;
+        const contentHtml = isHistory ? text : (isUser ? text : `<span id="${typingId}"></span>`);
+        wrapper.innerHTML = `
+            <div class="relative max-w-[85%] sm:max-w-[65%] min-w-[100px]">
+                <div class="px-2 py-1.5 rounded-lg shadow-sm text-[14.2px] leading-[19px] text-[#111b21] break-words relative z-10 message-bubble-content
+                    ${isUser ? 'bg-[#d9fdd3] rounded-tr-none' : 'bg-white rounded-tl-none'}">
+                    ${tailSvg}
+              
+                    <div class="px-1 pt-1 pb-4">
+                        ${contentHtml}
+                    </div>
+                    <div class="absolute bottom-1 right-2 flex items-center gap-1 select-none opacity-70">
+                        <span class="text-[11px] text-[#667781]">${getCurrentTime()}</span>
+                        ${ticks}
+                    </div>
+                </div>
+            </div>
+        `;
+        chatbox.appendChild(wrapper);
+        setTimeout(() => {
+            adjustChatboxPadding();
+            // Scroll to ensure last message is fully visible
+            if (wrapper) {
+                const lastBubble = wrapper.querySelector('.message-bubble-content');
+                if (lastBubble) {
+                    lastBubble.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+                } else {
+                    scrollToBottom();
+                }
+            } else {
+                scrollToBottom();
+            }
+        }, 50); // Slight delay for rendering
+        if (role !== "user" && !isHistory) {
+            // Return logic for typing animation
+            return { typingSpan: document.getElementById(typingId), wrapperElement: wrapper };
+        } else if (role !== "user" && isHistory && actionHtml) {
+            // Render static action html for history
+            const bubble = wrapper.querySelector('.message-bubble-content');
+            const container = document.createElement('div');
+            container.className = 'action-html-wrapper';
+            container.innerHTML = actionHtml.replace(/<script[\s\S]*?<\/script>/gi, ''); // Strip scripts for history
+            bubble.appendChild(container);
+        }
+    }
+    // --- SEND MESSAGE & TYPING LOGIC (Updated with Offline Handling) ---
+    // Original sendMessage logic (extracted for wrapping)
+    async function originalSendMessage(message = null) {
+        const msg = message || userInput.value.trim();
+        if (!msg) return;
+        userInput.value = "";
+        // Reset buttons
+        sendBtn.classList.add('hidden');
+        micBtn.classList.remove('hidden');
+        emojiPicker.classList.remove('show'); // Hide emoji picker
+        // Render User Message
+        renderMessage("user", msg);
+        chatHistory.push({ role: "user", content: msg, action_html: null });
+        // Setup Bot Placeholder
+        const renderRef = renderMessage("assistant", "..."); // Placeholder
+        const typingSpan = renderRef.typingSpan;
+  
+        isTyping = true;
+        headerStatus.innerText = "typing...";
+        headerStatus.classList.add("text-[#00a884]");
+        try {
+            const response = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie('csrftoken') },
+                body: JSON.stringify({ message: msg })
+            });
+            if (!response.ok) throw new Error("Network error");
+            const data = await response.json();
+      
+            const fullReply = data.reply || "Let me help you!";
+            const actionHtml = data.action_html || null;
+            const audioUrl = data.audio_url || null;
+            // TypeWriter Effect
+            let i = 0;
+            typingSpan.innerHTML = "";
+      
+            // Speak
+            speakText(fullReply, detectLanguage(fullReply));
+      
+            const timer = setInterval(() => {
+                if (i < fullReply.length) {
+                    typingSpan.innerHTML += fullReply.charAt(i++);
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                } else {
+                    clearInterval(timer);
+                    isTyping = false;
+                    headerStatus.innerText = "online";
+                    headerStatus.classList.remove("text-[#00a884]");
+              
+                    if (actionHtml) executeDynamicAction(actionHtml);
+              
+                    chatHistory.push({ role: "assistant", content: fullReply, action_html: actionHtml });
+                    toggleScrollBtn();
+                }
+            }, 30); // Fast typing
+        } catch (err) {
+            console.error(err);
+            // Silently handle chat errors, no user message
+            typingSpan.innerHTML = "";
+            isTyping = false;
+            headerStatus.innerText = "online";
+            toggleScrollBtn();
+        }
+    }
+    // Modified sendMessage (wrap your existing function)
+    async function sendMessage(message = null) {
+        if (isTyping || !currentUsername) return;
+  
+        const msg = message || userInput.value.trim();
+        if (!msg) return;
+  
+        if (isOfflineMode) {
+            // Queue during offline - user sees "offline" status, no error
+            offlineQueue.push(msg);
+            renderMessage("user", msg); // Still show user msg
+            renderMessage("assistant", "I'm temporarily offline. Your message is queued—I'll reply soon!"); // Graceful note
+            chatHistory.push({ role: "user", content: msg, action_html: null });
+            chatHistory.push({ role: "assistant", content: "I'm temporarily offline...", action_html: null });
+            return; // No API call
+        }
+        const startTime = Date.now();
+        try {
+            await originalSendMessage(message);
+            const responseTime = Date.now() - startTime;
+            lastReplyTime = Date.now();
+            // Post-send checks (after reply renders)
+            setTimeout(() => {
+                const lastAssistantMsg = chatHistory[chatHistory.length - 1];
+                if (lastAssistantMsg && lastAssistantMsg.role === 'assistant') {
+                    const reply = lastAssistantMsg.content;
+                    if (isFallbackReply(reply) || responseTime > MAX_RESPONSE_TIME) {
+                        // Infer offline from fallback or timeout
+                        enterOfflineMode("API temporarily unavailable");
+                    }
+                }
+                adjustChatboxPadding(); // Ensure visibility after reply
+                scrollToBottom();
+            }, 500); // Delay to let reply render
+        } catch (err) {
+            // Catch any fetch errors (e.g., network, 500)
+            console.warn('Chat fetch error (offline trigger):', err);
+            enterOfflineMode("Connection issue—retrying soon");
+        }
+    }
+    // Enter offline mode (no user-facing error, just status)
+    function enterOfflineMode(reason) {
+        console.warn('Entering offline mode:', reason); // Log only
+        isOfflineMode = true;
+        updateStatus("offline", true);
+        // Auto-retry after 30s (silent)
+        setTimeout(() => {
+            isOfflineMode = false;
+            updateStatus("reconnecting...", false);
+            retryQueue(); // Process queue
+            setTimeout(() => updateStatus("online", false), 5000); // Back to online after retry
+        }, 30000);
+    }
+    // Heartbeat check (every 60s, optional - pings /chat/ GET to detect backend health)
+    setInterval(async () => {
+        if (!isOfflineMode && currentUsername) {
+            try {
+                const resp = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`);
+                if (!resp.ok) {
+                    enterOfflineMode("Backend health check failed");
+                }
+            } catch (e) {
+                enterOfflineMode("Network heartbeat failed");
+            }
+        }
+    }, 60000);
+    // Init: Set initial status
+    updateStatus("online", false);
+    // --- EVENT LISTENERS ---
+    userInput.addEventListener("keypress", e => {
+        if (e.key === "Enter" && !isTyping) sendMessage();
+    });
+    // --- VOICE INPUT ---
+    function startListening() {
+        if (isTyping || !currentUsername) return;
+        if (!('webkitSpeechRecognition' in window)) {
+            console.warn("Voice not supported on this device.");
+            return;
+        }
+  
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = "en-IN";
+        recognition.interimResults = false;
+  
+        recognition.onstart = () => {
+            micBtn.classList.add("mic-active"); // Pulse animation
+        };
+  
+        recognition.onend = () => {
+            micBtn.classList.remove("mic-active");
+        };
+        recognition.onresult = e => sendMessage(e.results[0][0].transcript);
+        recognition.start();
+    }
+    </script>
+</body>
+</html>
+
+{% comment %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golden Tree Assistant</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Avatar */
+  #avatar {
+    @apply w-36 h-44 bg-yellow-200 rounded-[70%_60%] relative border-2 border-gray-300 shadow-lg mx-auto mb-4;
+  }
+  .eyebrow { @apply absolute w-10 h-1 bg-gray-800 rounded; top: 10%; }
+  .eyebrow.left { left: 20%; transform: rotate(-10deg); }
+  .eyebrow.right { right: 20%; transform: rotate(10deg); }
+  .eye { @apply w-5 h-5 bg-white rounded-full absolute border-2 border-gray-800 overflow-hidden; top: 30%; }
+  .eye.left { left: 25%; }
+  .eye.right { right: 25%; }
+  .pupil { @apply w-2.5 h-2.5 bg-black rounded-full absolute top-1 left-1 transition-all duration-200; }
+  .mouth { @apply w-16 h-6 bg-red-500 rounded-b-full absolute bottom-7 left-1/2 -translate-x-1/2 transition-all ease-linear duration-100; }
+  .mouth.typing { @apply h-10; }
+  .mouth.speaking { @apply bg-orange-500 animate-pulse; }
+  /* Chat bubbles */
+  .user-msg { @apply bg-indigo-500 text-white rounded-xl px-4 py-2 mb-2 max-w-[75%] self-end shadow-lg; }
+  .arya-msg { @apply bg-green-500 text-white rounded-xl px-4 py-2 mb-2 max-w-[75%] self-start shadow-lg; }
+  .action-html { @apply mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg; }
+  /* Scrollbar */
+  #chatbox::-webkit-scrollbar { width: 6px; }
+  #chatbox::-webkit-scrollbar-thumb { background-color: #888; border-radius: 3px; }
+  #chatbox::-webkit-scrollbar-thumb:hover { background-color: #555; }
+  #chatbox { scroll-behavior: smooth; }
+  /* Button states */
+  .send-btn:disabled { @apply opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400; }
+  .send-btn.typing { @apply bg-yellow-500; }
+  .mic-btn:disabled { @apply opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-600; }
+  /* Username Modal */
+  #usernameModal { @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50; }
+  .modal-content { @apply bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4; }
+</style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+<!-- Username Modal -->
+<div id="usernameModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50 hidden">
+  <div class="modal-content relative w-full max-w-md mx-4 p-6 bg-white rounded-lg shadow-xl transform transition-all sm:mx-auto md:p-8">
+    <!-- Close button (optional, for better UX) -->
+    <button onclick="document.getElementById('usernameModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 sm:text-xl">Welcome! Enter your details to start chatting</h2>
+    <form class="space-y-4">
+      <input
+        type="text"
+        id="usernameInput"
+        placeholder="Your name..."
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-base placeholder-gray-500"
+        required
+      />
+      <input
+        type="password"
+        id="passwordInput"
+        placeholder="Your password..."
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-base placeholder-gray-500"
+        required
+      />
+      <div class="flex flex-col sm:flex-row gap-3 pt-2">
+        <button
+          id="setUsernameBtn"
+          type="button"
+          class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200 font-medium text-sm sm:text-base"
+        >
+          Start Chat
+        </button>
+        <button
+          id="cancelUsernameBtn"
+          type="button"
+          class="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-200 font-medium text-sm sm:text-base"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+  <header class="py-3 bg-white shadow flex items-center px-4 flex-shrink-0">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLLLH1AekDV2tiFEYQRWy2fPoVQjlJCYvHhQ&s" alt="Logo" class="w-10 h-10 mr-3 rounded-full">
+    <h1 class="text-xl font-bold text-gray-800">Golden Tree Assistant</h1>
+    <span id="userDisplay" class="ml-auto text-sm text-gray-600 hidden"></span> <!-- Shows username once set -->
+    <button id="logoutBtn" class="ml-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Logout</button>
+  </header>
+  <main class="flex-1 flex flex-col relative overflow-hidden">
+    <div class="flex justify-center p-4 bg-gray-100 flex-shrink-0 rounded-lg shadow">
+      <div id="avatar">
+        <div class="eyebrow left"></div>
+        <div class="eyebrow right"></div>
+        <div class="eye left"><div class="pupil"></div></div>
+        <div class="eye right"><div class="pupil"></div></div>
+        <div class="mouth" id="mouth"></div>
+      </div>
+    </div>
+    <div id="chatbox" class="flex-1 w-full bg-white border border-gray-300 rounded p-4 overflow-y-auto flex flex-col gap-2 mb-24"></div>
+    <div id="inputContainer" class="fixed bottom-0 left-1/2 transform -translate-x-1/2
+w-full max-w-4xl flex flex-col gap-2 p-3 bg-white border-t border-gray-300
+z-20 shadow-md rounded-t-lg hidden">
+      <div class="flex flex-row gap-2">
+        <input type="text" id="user_input" placeholder="Type your message..."
+          class="flex-1 min-w-[180px] p-2 text-sm border border-gray-300 rounded-lg
+          focus:outline-none focus:ring focus:ring-green-300" />
+        <button id="send_btn" onclick="sendMessage()"
+          class="px-3 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 send-btn">
+          Send
+        </button>
+        <button id="mic_btn" onclick="startListening()"
+          class="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 mic-btn">
+          🎙
+        </button>
+      </div>
+      <!-- COPYRIGHT LINE ADDED HERE -->
+      <p class="text-center text-gray-500 text-xs mt-1">
+        © 2025 Golden Tree Garments. AI can make mistakes.
+      </p>
+    </div>
+  </main>
+<script>
+// Helper function to get CSRF token (assuming Django or similar; adjust if needed)
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+// === GLOBALS ===
+const chatbox = document.getElementById("chatbox");
+const mouth = document.getElementById("mouth");
+const userInput = document.getElementById("user_input");
+const sendBtn = document.getElementById("send_btn");
+const micBtn = document.getElementById("mic_btn");
+const usernameModal = document.getElementById("usernameModal");
+const usernameInput = document.getElementById("usernameInput");
+const setUsernameBtn = document.getElementById("setUsernameBtn");
+const cancelUsernameBtn = document.getElementById("cancelUsernameBtn");
+const inputContainer = document.getElementById("inputContainer");
+const userDisplay = document.getElementById("userDisplay");
+let isTyping = false;
+let currentUsername = localStorage.getItem("username");
+let chatHistory = []; // Loaded from backend
+let currentSpeech = null; // Track ongoing speech
+let typingCounter = 0; // Counter for unique typing span IDs
+// === SPEECH SYNTHESIS UTILITY ===
+function detectLanguage(text) {
+  // Simple detection: Check for Hindi script
+  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN';
+  return 'en-IN'; // Default to English India
+}
+function speakText(text, lang = 'en-IN') {
+  if (!('speechSynthesis' in window)) {
+    console.warn("SpeechSynthesis not supported");
+    return;
+  }
+  // Cancel any ongoing speech
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  // Human-like adjustments for natural, engaging tone (AI-like but fully humanized)
+  utterance.rate = 0.85 + (Math.random() * 0.1); // Varied pace: 0.85-0.95 for natural flow, slight randomness for "human" feel
+  utterance.pitch = 0.95 + (Math.random() * 0.15); // Varied pitch: 0.95-1.1, higher for warmth/femininity, random for expressiveness
+  utterance.volume = 0.9; // Softer volume for conversational tone
+  // Prioritize exact Google Neural voices for human-like AI tone
+  const voices = speechSynthesis.getVoices();
+  let preferredVoice = null;
+  let voiceName = lang === 'hi-IN' ? 'hi-IN-SwaraNeural' : 'en-IN-NeerjaNeural';
+  preferredVoice = voices.find(v => v.name === voiceName);
+  if (!preferredVoice) {
+    // Fallback to other high-quality human-like voices
+    if (lang === 'hi-IN') {
+      preferredVoice = voices.find(v => v.name.includes('Swara') || v.name.includes('Neural') && v.lang === 'hi-IN') ||
+                       voices.find(v => /female/i.test(v.name.toLowerCase()) && v.lang === 'hi-IN') ||
+                       voices.find(v => v.lang === 'hi-IN');
+    } else {
+      preferredVoice = voices.find(v => v.name.includes('Neerja') || v.name.includes('Neural') && v.lang === 'en-IN') ||
+                       voices.find(v => v.name.includes('Google') && /UK|US/i.test(v.name) && /female/i.test(v.name.toLowerCase())) ||
+                       voices.find(v => /female/i.test(v.name.toLowerCase()) && v.lang.startsWith('en')) ||
+                       voices.find(v => v.lang.startsWith('en'));
+    }
+  }
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+    console.log(`Selected voice: ${preferredVoice.name} for ${lang} (human-like AI tone)`);
+  }
+  // Events for fun animations and feedback
+  utterance.onstart = () => {
+    mouth.classList.add('speaking');
+    console.log("Arya speaking with human flair! 🎤", lang);
+  };
+  utterance.onend = () => {
+    mouth.classList.remove('speaking');
+    console.log("Arya finished speaking. What's next? 😊");
+    // Ensure typing stops if speech ends first (sync stop)
+    if (isTyping) {
+      // Optional: Accelerate typing to catch up if needed, but for now just log
+      console.log("Speech ended; typing may continue briefly.");
+    }
+  };
+  utterance.onerror = (e) => {
+    mouth.classList.remove('speaking');
+    console.error("Speech hiccup! Error:", e.error);
+  };
+  // Add a touch of fun: Pause briefly if text has punctuation for natural breathing
+  if (text.includes('!') || text.includes('?')) {
+    utterance.rate *= 0.95; // Slower for exclamations/questions
+  }
+  currentSpeech = utterance;
+  speechSynthesis.speak(utterance);
+}
+// Wait for voices to load (async) - Load voices early for better selection
+if (speechSynthesis.getVoices().length === 0) {
+  speechSynthesis.onvoiceschanged = () => {
+    console.log("Voices loaded! Ready for natural chit-chat:", speechSynthesis.getVoices().length);
+  };
+} else {
+  console.log("Voices already loaded:", speechSynthesis.getVoices().length);
+}
+// === USERNAME HANDLING ===
+function showUsernameModal() {
+  usernameModal.classList.remove("hidden");
+  usernameInput.focus();
+}
+function hideUsernameModal() {
+  usernameModal.classList.add("hidden");
+}
+const passwordInput = document.getElementById("passwordInput");
+async function setUsername(name) {
+  const cleanName = name.trim();
+  const cleanPassword = passwordInput.value.trim();
+  if (!cleanName || cleanName.length < 2) {
+    alert("Please enter a valid name (at least 2 characters).");
+    usernameInput.focus();
+    return false;
+  }
+  if (!cleanPassword) {
+    alert("Password is required.");
+    passwordInput.focus();
+    return false;
+  }
+  try {
+    // AJAX validate uniqueness and password in backend
+    const response = await fetch('/validate-username/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken') // Helper for CSRF
+      },
+      body: JSON.stringify({ username: cleanName, password: cleanPassword })
+    });
+    const data = await response.json();
+    if (!data.valid) {
+      alert(data.message);
+      if (data.existing) {
+        passwordInput.focus(); // Focus password if existing user
+      } else {
+        usernameInput.focus();
+      }
+      return false;
+    }
+    // If valid (new or authenticated), save username (password not stored client-side for security)
+    localStorage.setItem("username", cleanName);
+    currentUsername = cleanName;
+    userDisplay.textContent = `Hi, ${cleanName}!`;
+    userDisplay.classList.remove("hidden");
+    hideUsernameModal();
+    inputContainer.classList.remove("hidden");
+    loadHistory(); // Fetch and render backend history
+    return true;
+  } catch (err) {
+    alert('Validation error – please try again.');
+    console.error('Username validation failed:', err);
+    return false;
+  }
+}
+setUsernameBtn.onclick = () => setUsername(usernameInput.value);
+cancelUsernameBtn.onclick = () => { alert("Username and password required to chat!"); usernameInput.focus(); };
+usernameInput.onkeypress = (e) => { if (e.key === "Enter") setUsername(usernameInput.value); };
+passwordInput.onkeypress = (e) => { if (e.key === "Enter") setUsername(usernameInput.value); };
+// Logout: Clear localStorage username, show modal for new entry (password not cleared as not stored)
+function logout() {
+  localStorage.removeItem("username");
+  currentUsername = null;
+  chatHistory = [];
+  chatbox.innerHTML = ''; // Clear chat
+  userDisplay.classList.add("hidden");
+  inputContainer.classList.add("hidden");
+  showUsernameModal();
+  usernameInput.value = '';
+  passwordInput.value = ''; // Clear password field
+  console.log("Logged out – prompting for new username/password");
+  speechSynthesis.cancel(); // Stop any ongoing speech
+}
+// Bind logout button
+document.getElementById('logoutBtn').onclick = logout;
+// Init: Check if username exists in localStorage; if yes, load directly without modal; else show modal
+if (currentUsername) {
+  userDisplay.textContent = `Hi, ${currentUsername}!`;
+  userDisplay.classList.remove("hidden");
+  inputContainer.classList.remove("hidden");
+  loadHistory();
+} else {
+  showUsernameModal();
+}
+// === LOAD HISTORY FROM BACKEND ===
+async function loadHistory() {
+  if (!currentUsername) return;
+  try {
+    const response = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`);
+    if (response.ok) {
+      const data = await response.json();
+      chatHistory = data.history || [];
+      chatHistory.forEach(msg => renderMessage(msg.role, msg.content, msg.action_html, true, msg.audio_url));
+    }
+  } catch (err) {
+    console.error("Failed to load history:", err);
+  }
+}
+// === DYNAMIC ACTION EXECUTOR (NEW MESSAGES ONLY) ===
+// === DYNAMIC ACTION EXECUTOR (NEW MESSAGES ONLY) ===
+// === FINAL 100% WORKING ACTION EXECUTOR — QR, SELFIE, TORCH, CALL — EVERYTHING WORKS ===
+// === FINAL WORKING EXECUTOR — QR, SELFIE, TORCH, CALL — ALL WORK INSTANTLY ===
+function executeDynamicAction(actionHtml) {
+  if (!actionHtml) return;
+  const container = document.createElement('div');
+  container.className = 'action-html mt-4 p-5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl shadow-xl border border-purple-200';
+  const lastMsg = document.querySelector('.arya-msg:last-child');
+  if (lastMsg) {
+    lastMsg.appendChild(container);
+    chatbox.scrollTop = chatbox.scrollHeight;
+  }
+  // Inject full HTML + scripts
+  container.innerHTML = actionHtml;
+  // Run all scripts inside
+  container.querySelectorAll('script').forEach(oldScript => {
+    const newScript = document.createElement('script');
+    newScript.textContent = oldScript.textContent || oldScript.innerHTML;
+    oldScript.parentNode.replaceChild(newScript, oldScript);
+  });
+  setTimeout(() => chatbox.scrollTop = chatbox.scrollHeight, 500);
+}
+// === RENDER MESSAGE (STATIC FOR HISTORY, DYNAMIC FOR NEW) ===
+function renderMessage(role, text, actionHtml = null, isHistory = false, audioUrl = null) {
+  const type = role === "user" ? "user" : "arya";
+  const p = document.createElement("div");
+  p.className = type === "user" ? "user-msg" : "arya-msg";
+  p.innerHTML = `<span class="font-semibold">${type === "user" ? "You" : "Arya"}:</span> ${text}`;
+  if (type === "arya" && actionHtml) {
+    if (isHistory) {
+      // Static: only show HTML (no script execution)
+      const div = document.createElement("div");
+      div.className = "action-html";
+      div.innerHTML = actionHtml.replace(/<script[\s\S]*?<\/script>/gi, '');
+      p.appendChild(div);
+    } else {
+      // New message: execute scripts
+      setTimeout(() => executeDynamicAction(actionHtml), 100); // After DOM
+    }
+  }
+  // For historical audio, do not play (files expired); optionally add a play button if needed
+  if (isHistory && audioUrl && type === "arya") {
+    // Optional: Add a replay button for history (but skip for now as files are temporary)
+    console.log("Historical audio URL available but not playable:", audioUrl);
+  }
+  chatbox.appendChild(p);
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
+// === DISPLAY USER MESSAGE (IMMEDIATE) ===
+function displayMessage(type, text) {
+  const p = document.createElement("div");
+  p.className = type === "user" ? "user-msg" : "arya-msg";
+  p.innerHTML = `<span class="font-semibold">${type === "user" ? "You" : "Arya"}:</span> ${text}`;
+  chatbox.appendChild(p);
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
+// === PLAY AUDIO (BACKEND FALLBACK, BUT PRIORITIZE JS SPEECH) ===
+function playAudio(audioUrl) {
+  if (!audioUrl) return;
+  try {
+    const audio = new Audio(audioUrl);
+    audio.play().then(() => {
+      console.log("Backend audio playback started:", audioUrl);
+    }).catch(e => {
+      console.warn("Backend audio failed:", e);
+      // Fallback to JS speech if backend audio fails
+      speakText("Sorry, audio playback issue. Let me speak instead.", 'en-IN');
+    });
+    audio.onended = () => console.log("Backend audio ended.");
+  } catch (err) {
+    console.error("Backend audio creation failed:", err);
+    speakText("Audio error occurred.", 'en-IN');
+  }
+}
+// === TYPING ANIMATION ===
+function typeResponse(typingSpan, fullReply, actionHtml, aryaElem, audioUrl, callback) {
+  let i = 0;
+  typingSpan.innerHTML = '';
+  isTyping = true;
+  sendBtn.disabled = true;
+  sendBtn.classList.add("typing");
+  sendBtn.textContent = "Golden Tree Typing...";
+  userInput.disabled = true;
+  userInput.placeholder = "Golden Tree is responding...";
+  micBtn.disabled = true;
+  animateMouthStart();
+  // Start speaking concurrently with typing for synchronized "write and speak" effect
+  const detectedLang = detectLanguage(fullReply);
+  speakText(fullReply, detectedLang);
+  // Optional: Fallback to backend audio if JS speech not supported
+  if (!('speechSynthesis' in window) && audioUrl) {
+    playAudio(audioUrl);
+  }
+  const timer = setInterval(() => {
+    if (i < fullReply.length) {
+      typingSpan.innerHTML += fullReply.charAt(i++);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    } else {
+      clearInterval(timer);
+      isTyping = false;
+      sendBtn.disabled = false;
+      sendBtn.classList.remove("typing");
+      sendBtn.textContent = "Send";
+      userInput.disabled = false;
+      userInput.placeholder = "Type your message...";
+      userInput.focus();
+      micBtn.disabled = false;
+      animateMouthStop();
+      if (actionHtml) {
+        executeDynamicAction(actionHtml);
+      }
+      if (callback) callback();
+    }
+  }, 80);
+}
+function animateMouthStart() { mouth.classList.add("typing"); }
+function animateMouthStop() { mouth.classList.remove("typing"); }
+// === SEND MESSAGE ===
+async function sendMessage(message = null) {
+  if (isTyping || !currentUsername) return;
+  const msg = message || userInput.value.trim();
+  if (!msg) return;
+  userInput.value = "";
+  displayMessage("user", msg);
+  chatHistory.push({ role: "user", content: msg, action_html: null });
+  const typingId = ++typingCounter;
+  const aryaElem = document.createElement("div");
+  aryaElem.className = "arya-msg";
+  aryaElem.innerHTML = `<span class="font-semibold">Golden Tree:</span> <span class="typing" id="temp-typing-${typingId}"></span>`;
+  chatbox.appendChild(aryaElem);
+  chatbox.scrollTop = chatbox.scrollHeight;
+  const typingSpan = document.getElementById(`temp-typing-${typingId}`);
+  try {
+    const response = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie('csrftoken') },
+      body: JSON.stringify({ message: msg })
+    });
+    if (!response.ok) throw new Error("Network error");
+    const data = await response.json();
+    const fullReply = data.reply || "Let me help you!";
+    const actionHtml = data.action_html || null;
+    const audioUrl = data.audio_url || null; // Optional backend fallback
+    typeResponse(typingSpan, fullReply, actionHtml, aryaElem, audioUrl, () => {
+      chatHistory.push({ role: "assistant", content: fullReply, action_html: actionHtml, audio_url: audioUrl });
+    });
+  } catch (err) {
+    console.error(err);
+    const fallbackReply = "I'm here to help!";
+    const fallbackAudioUrl = null; // No audio on error for simplicity
+    typeResponse(typingSpan, fallbackReply, null, aryaElem, fallbackAudioUrl, () => {
+      chatHistory.push({ role: "assistant", content: fallbackReply, action_html: null, audio_url: null });
+    });
+  }
+}
+// === ENTER KEY ===
+userInput.addEventListener("keypress", e => {
+  if (e.key === "Enter" && !isTyping) sendMessage();
+});
+// === VOICE INPUT ===
+function startListening() {
+  if (isTyping || !currentUsername) return;
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Voice not supported");
+    return;
+  }
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-IN";
+  recognition.interimResults = false;
+  recognition.onresult = e => sendMessage(e.results[0][0].transcript);
+  recognition.start();
+}
+</script>
+</body>
+</html>
+{% endcomment %}
+{% comment %} best {% endcomment %}
+{% comment %} --------------------------------------------------------------------------- {% endcomment %}
+
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golden Tree Assistant</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Avatar */
+  #avatar {
+    @apply w-36 h-44 bg-yellow-200 rounded-[70%_60%] relative border-2 border-gray-300 shadow-lg mx-auto mb-4;
+  }
+  .eyebrow { @apply absolute w-10 h-1 bg-gray-800 rounded; top: 10%; }
+  .eyebrow.left { left: 20%; transform: rotate(-10deg); }
+  .eyebrow.right { right: 20%; transform: rotate(10deg); }
+  .eye { @apply w-5 h-5 bg-white rounded-full absolute border-2 border-gray-800 overflow-hidden; top: 30%; }
+  .eye.left { left: 25%; }
+  .eye.right { right: 25%; }
+  .pupil { @apply w-2.5 h-2.5 bg-black rounded-full absolute top-1 left-1 transition-all duration-200; }
+  .mouth { @apply w-16 h-6 bg-red-500 rounded-b-full absolute bottom-7 left-1/2 -translate-x-1/2 transition-all ease-linear duration-100; }
+  .mouth.typing { @apply h-10; }
+  .mouth.speaking { @apply bg-orange-500 animate-pulse; }
+  /* Chat bubbles */
+  .user-msg { @apply bg-indigo-500 text-white rounded-xl px-4 py-2 mb-2 max-w-[75%] self-end shadow-lg; }
+  .arya-msg { @apply bg-green-500 text-white rounded-xl px-4 py-2 mb-2 max-w-[75%] self-start shadow-lg; }
+  .action-html { @apply mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg; }
+  /* Scrollbar */
+  #chatbox::-webkit-scrollbar { width: 6px; }
+  #chatbox::-webkit-scrollbar-thumb { background-color: #888; border-radius: 3px; }
+  #chatbox::-webkit-scrollbar-thumb:hover { background-color: #555; }
+  #chatbox { scroll-behavior: smooth; }
+  /* Button states */
+  .send-btn:disabled { @apply opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400; }
+  .send-btn.typing { @apply bg-yellow-500; }
+  .mic-btn:disabled { @apply opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-600; }
+  /* Username Modal */
+  #usernameModal { @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50; }
+  .modal-content { @apply bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4; }
+</style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+<!-- Username Modal -->
+<div id="usernameModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50 hidden">
+  <div class="modal-content relative w-full max-w-md mx-4 p-6 bg-white rounded-lg shadow-xl transform transition-all sm:mx-auto md:p-8">
+    <!-- Close button (optional, for better UX) -->
+    <button onclick="document.getElementById('usernameModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 sm:text-xl">Welcome! Enter your details to start chatting</h2>
+    <form class="space-y-4">
+      <input
+        type="text"
+        id="usernameInput"
+        placeholder="Your name..."
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-base placeholder-gray-500"
+        required
+      />
+      <input
+        type="password"
+        id="passwordInput"
+        placeholder="Your password..."
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-base placeholder-gray-500"
+        required
+      />
+      <div class="flex flex-col sm:flex-row gap-3 pt-2">
+        <button
+          id="setUsernameBtn"
+          type="button"
+          class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200 font-medium text-sm sm:text-base"
+        >
+          Start Chat
+        </button>
+        <button
+          id="cancelUsernameBtn"
+          type="button"
+          class="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-200 font-medium text-sm sm:text-base"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+  <header class="py-3 bg-white shadow flex items-center px-4 flex-shrink-0">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLLLH1AekDV2tiFEYQRWy2fPoVQjlJCYvHhQ&s" alt="Logo" class="w-10 h-10 mr-3 rounded-full">
+    <h1 class="text-xl font-bold text-gray-800">Golden Tree Assistant</h1>
+    <span id="userDisplay" class="ml-auto text-sm text-gray-600 hidden"></span> <!-- Shows username once set -->
+    <button id="logoutBtn" class="ml-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Logout</button>
+  </header>
+  <main class="flex-1 flex flex-col relative overflow-hidden">
+    <div class="flex justify-center p-4 bg-gray-100 flex-shrink-0 rounded-lg shadow">
+      <div id="avatar">
+        <div class="eyebrow left"></div>
+        <div class="eyebrow right"></div>
+        <div class="eye left"><div class="pupil"></div></div>
+        <div class="eye right"><div class="pupil"></div></div>
+        <div class="mouth" id="mouth"></div>
+      </div>
+    </div>
+    <div id="chatbox" class="flex-1 w-full bg-white border border-gray-300 rounded p-4 overflow-y-auto flex flex-col gap-2 mb-24"></div>
+  </div>
+  <div id="inputContainer" class="fixed bottom-0 left-1/2 transform -translate-x-1/2
+w-full max-w-4xl flex flex-col gap-2 p-3 bg-white border-t border-gray-300
+z-20 shadow-md rounded-t-lg hidden">
+  <div class="flex flex-row gap-2">
+    <input type="text" id="user_input" placeholder="Type your message..."
+      class="flex-1 min-w-[180px] p-2 text-sm border border-gray-300 rounded-lg
+      focus:outline-none focus:ring focus:ring-green-300" />
+    <button id="send_btn" onclick="sendMessage()"
+      class="px-3 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 send-btn">
+      Send
+    </button>
+    <button id="mic_btn" onclick="startListening()"
+      class="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 mic-btn">
+      🎙
+    </button>
+  </div>
+  <!-- COPYRIGHT LINE ADDED HERE -->
+  <p class="text-center text-gray-500 text-xs mt-1">
+    © 2025 Golden Tree Garments. AI can make mistakes.
+  </p>
+</div>
+
+</main>
+
+<script>
+// Helper function to get CSRF token (assuming Django or similar; adjust if needed)
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+// === GLOBALS ===
+const chatbox = document.getElementById("chatbox");
+const mouth = document.getElementById("mouth");
+const userInput = document.getElementById("user_input");
+const sendBtn = document.getElementById("send_btn");
+const micBtn = document.getElementById("mic_btn");
+const usernameModal = document.getElementById("usernameModal");
+const usernameInput = document.getElementById("usernameInput");
+const setUsernameBtn = document.getElementById("setUsernameBtn");
+const cancelUsernameBtn = document.getElementById("cancelUsernameBtn");
+const inputContainer = document.getElementById("inputContainer");
+const userDisplay = document.getElementById("userDisplay");
+let isTyping = false;
+let currentUsername = localStorage.getItem("username");
+let chatHistory = []; // Loaded from backend
+let currentSpeech = null; // Track ongoing speech
+// === SPEECH SYNTHESIS UTILITY ===
+function detectLanguage(text) {
+  // Simple detection: Check for Hindi script
+  if (/[\u0900-\u097F]/.test(text)) return 'hi-IN';
+  return 'en-IN'; // Default to English India
+}
+function speakText(text, lang = 'en-IN') {
+  if (!('speechSynthesis' in window)) {
+    console.warn("SpeechSynthesis not supported");
+    return;
+  }
+  // Cancel any ongoing speech
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  // Human-like adjustments for natural, engaging tone (AI-like but fully humanized)
+  utterance.rate = 0.85 + (Math.random() * 0.1); // Varied pace: 0.85-0.95 for natural flow, slight randomness for "human" feel
+  utterance.pitch = 0.95 + (Math.random() * 0.15); // Varied pitch: 0.95-1.1, higher for warmth/femininity, random for expressiveness
+  utterance.volume = 0.9; // Softer volume for conversational tone
+  // Prioritize exact Google Neural voices for human-like AI tone
+  const voices = speechSynthesis.getVoices();
+  let preferredVoice = null;
+  let voiceName = lang === 'hi-IN' ? 'hi-IN-SwaraNeural' : 'en-IN-NeerjaNeural';
+  preferredVoice = voices.find(v => v.name === voiceName);
+  if (!preferredVoice) {
+    // Fallback to other high-quality human-like voices
+    if (lang === 'hi-IN') {
+      preferredVoice = voices.find(v => v.name.includes('Swara') || v.name.includes('Neural') && v.lang === 'hi-IN') ||
+                       voices.find(v => /female/i.test(v.name.toLowerCase()) && v.lang === 'hi-IN') ||
+                       voices.find(v => v.lang === 'hi-IN');
+    } else {
+      preferredVoice = voices.find(v => v.name.includes('Neerja') || v.name.includes('Neural') && v.lang === 'en-IN') ||
+                       voices.find(v => v.name.includes('Google') && /UK|US/i.test(v.name) && /female/i.test(v.name.toLowerCase())) ||
+                       voices.find(v => /female/i.test(v.name.toLowerCase()) && v.lang.startsWith('en')) ||
+                       voices.find(v => v.lang.startsWith('en'));
+    }
+  }
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+    console.log(`Selected voice: ${preferredVoice.name} for ${lang} (human-like AI tone)`);
+  }
+  // Events for fun animations and feedback
+  utterance.onstart = () => {
+    mouth.classList.add('speaking');
+    console.log("Arya speaking with human flair! 🎤", lang);
+  };
+  utterance.onend = () => {
+    mouth.classList.remove('speaking');
+    console.log("Arya finished speaking. What's next? 😊");
+    // Ensure typing stops if speech ends first (sync stop)
+    if (isTyping) {
+      // Optional: Accelerate typing to catch up if needed, but for now just log
+      console.log("Speech ended; typing may continue briefly.");
+    }
+  };
+  utterance.onerror = (e) => {
+    mouth.classList.remove('speaking');
+    console.error("Speech hiccup! Error:", e.error);
+  };
+  // Add a touch of fun: Pause briefly if text has punctuation for natural breathing
+  if (text.includes('!') || text.includes('?')) {
+    utterance.rate *= 0.95; // Slower for exclamations/questions
+  }
+  currentSpeech = utterance;
+  speechSynthesis.speak(utterance);
+}
+// Wait for voices to load (async) - Load voices early for better selection
+if (speechSynthesis.getVoices().length === 0) {
+  speechSynthesis.onvoiceschanged = () => {
+    console.log("Voices loaded! Ready for natural chit-chat:", speechSynthesis.getVoices().length);
+  };
+} else {
+  console.log("Voices already loaded:", speechSynthesis.getVoices().length);
+}
+// === USERNAME HANDLING ===
+function showUsernameModal() {
+  usernameModal.classList.remove("hidden");
+  usernameInput.focus();
+}
+function hideUsernameModal() {
+  usernameModal.classList.add("hidden");
+}
+const passwordInput = document.getElementById("passwordInput");
+async function setUsername(name) {
+  const cleanName = name.trim();
+  const cleanPassword = passwordInput.value.trim();
+  if (!cleanName || cleanName.length < 2) {
+    alert("Please enter a valid name (at least 2 characters).");
+    usernameInput.focus();
+    return false;
+  }
+  if (!cleanPassword) {
+    alert("Password is required.");
+    passwordInput.focus();
+    return false;
+  }
+  try {
+    // AJAX validate uniqueness and password in backend
+    const response = await fetch('/validate-username/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken') // Helper for CSRF
+      },
+      body: JSON.stringify({ username: cleanName, password: cleanPassword })
+    });
+    const data = await response.json();
+    if (!data.valid) {
+      alert(data.message);
+      if (data.existing) {
+        passwordInput.focus(); // Focus password if existing user
+      } else {
+        usernameInput.focus();
+      }
+      return false;
+    }
+    // If valid (new or authenticated), save username (password not stored client-side for security)
+    localStorage.setItem("username", cleanName);
+    currentUsername = cleanName;
+    userDisplay.textContent = `Hi, ${cleanName}!`;
+    userDisplay.classList.remove("hidden");
+    hideUsernameModal();
+    inputContainer.classList.remove("hidden");
+    loadHistory(); // Fetch and render backend history
+    return true;
+  } catch (err) {
+    alert('Validation error – please try again.');
+    console.error('Username validation failed:', err);
+    return false;
+  }
+}
+setUsernameBtn.onclick = () => setUsername(usernameInput.value);
+cancelUsernameBtn.onclick = () => { alert("Username and password required to chat!"); usernameInput.focus(); };
+usernameInput.onkeypress = (e) => { if (e.key === "Enter") setUsername(usernameInput.value); };
+passwordInput.onkeypress = (e) => { if (e.key === "Enter") setUsername(usernameInput.value); };
+// Logout: Clear localStorage username, show modal for new entry (password not cleared as not stored)
+function logout() {
+  localStorage.removeItem("username");
+  currentUsername = null;
+  chatHistory = [];
+  chatbox.innerHTML = ''; // Clear chat
+  userDisplay.classList.add("hidden");
+  inputContainer.classList.add("hidden");
+  showUsernameModal();
+  usernameInput.value = '';
+  passwordInput.value = ''; // Clear password field
+  console.log("Logged out – prompting for new username/password");
+  speechSynthesis.cancel(); // Stop any ongoing speech
+}
+// Bind logout button
+document.getElementById('logoutBtn').onclick = logout;
+// Init: Check if username exists in localStorage; if yes, load directly without modal; else show modal
+if (currentUsername) {
+  userDisplay.textContent = `Hi, ${currentUsername}!`;
+  userDisplay.classList.remove("hidden");
+  inputContainer.classList.remove("hidden");
+  loadHistory();
+} else {
+  showUsernameModal();
+}
+// === LOAD HISTORY FROM BACKEND ===
+async function loadHistory() {
+  if (!currentUsername) return;
+  try {
+    const response = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`);
+    if (response.ok) {
+      const data = await response.json();
+      chatHistory = data.history || [];
+      chatHistory.forEach(msg => renderMessage(msg.role, msg.content, msg.action_html, true, msg.audio_url));
+    }
+  } catch (err) {
+    console.error("Failed to load history:", err);
+  }
+}
+// === DYNAMIC ACTION EXECUTOR (NEW MESSAGES ONLY) ===
+// === DYNAMIC ACTION EXECUTOR (NEW MESSAGES ONLY) ===
+// === FINAL 100% WORKING ACTION EXECUTOR — QR, SELFIE, TORCH, CALL — EVERYTHING WORKS ===
+// === FINAL WORKING EXECUTOR — QR, SELFIE, TORCH, CALL — ALL WORK INSTANTLY ===
+function executeDynamicAction(actionHtml) {
+  if (!actionHtml) return;
+
+  const container = document.createElement('div');
+  container.className = 'action-html mt-4 p-5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl shadow-xl border border-purple-200';
+
+  const lastMsg = document.querySelector('.arya-msg:last-child');
+  if (lastMsg) {
+    lastMsg.appendChild(container);
+    chatbox.scrollTop = chatbox.scrollHeight;
+  }
+
+  // Inject full HTML + scripts
+  container.innerHTML = actionHtml;
+
+  // Run all scripts inside
+  container.querySelectorAll('script').forEach(oldScript => {
+    const newScript = document.createElement('script');
+    newScript.textContent = oldScript.textContent || oldScript.innerHTML;
+    oldScript.parentNode.replaceChild(newScript, oldScript);
+  });
+
+  setTimeout(() => chatbox.scrollTop = chatbox.scrollHeight, 500);
+}
+// === RENDER MESSAGE (STATIC FOR HISTORY, DYNAMIC FOR NEW) ===
+function renderMessage(role, text, actionHtml = null, isHistory = false, audioUrl = null) {
+  const type = role === "user" ? "user" : "arya";
+  const p = document.createElement("div");
+  p.className = type === "user" ? "user-msg" : "arya-msg";
+  p.innerHTML = `<span class="font-semibold">${type === "user" ? "You" : "Arya"}:</span> ${text}`;
+  if (type === "arya" && actionHtml) {
+    if (isHistory) {
+      // Static: only show HTML (no script execution)
+      const div = document.createElement("div");
+      div.className = "action-html";
+      div.innerHTML = actionHtml.replace(/<script[\s\S]*?<\/script>/gi, '');
+      p.appendChild(div);
+    } else {
+      // New message: execute scripts
+      setTimeout(() => executeDynamicAction(actionHtml), 100); // After DOM
+    }
+  }
+  // For historical audio, do not play (files expired); optionally add a play button if needed
+  if (isHistory && audioUrl && type === "arya") {
+    // Optional: Add a replay button for history (but skip for now as files are temporary)
+    console.log("Historical audio URL available but not playable:", audioUrl);
+  }
+  chatbox.appendChild(p);
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
+// === DISPLAY USER MESSAGE (IMMEDIATE) ===
+function displayMessage(type, text) {
+  const p = document.createElement("div");
+  p.className = type === "user" ? "user-msg" : "arya-msg";
+  p.innerHTML = `<span class="font-semibold">${type === "user" ? "You" : "Arya"}:</span> ${text}`;
+  chatbox.appendChild(p);
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
+// === PLAY AUDIO (BACKEND FALLBACK, BUT PRIORITIZE JS SPEECH) ===
+function playAudio(audioUrl) {
+  if (!audioUrl) return;
+  try {
+    const audio = new Audio(audioUrl);
+    audio.play().then(() => {
+      console.log("Backend audio playback started:", audioUrl);
+    }).catch(e => {
+      console.warn("Backend audio failed:", e);
+      // Fallback to JS speech if backend audio fails
+      speakText("Sorry, audio playback issue. Let me speak instead.", 'en-IN');
+    });
+    audio.onended = () => console.log("Backend audio ended.");
+  } catch (err) {
+    console.error("Backend audio creation failed:", err);
+    speakText("Audio error occurred.", 'en-IN');
+  }
+}
+// === TYPING ANIMATION ===
+function typeResponse(typingSpan, fullReply, actionHtml, aryaElem, audioUrl, callback) {
+  let i = 0;
+  typingSpan.innerHTML = '';
+  isTyping = true;
+  sendBtn.disabled = true;
+  sendBtn.classList.add("typing");
+  sendBtn.textContent = "Arya Typing...";
+  userInput.disabled = true;
+  userInput.placeholder = "Arya is responding...";
+  micBtn.disabled = true;
+  animateMouthStart();
+  // Start speaking concurrently with typing for synchronized "write and speak" effect
+  const detectedLang = detectLanguage(fullReply);
+  speakText(fullReply, detectedLang);
+  // Optional: Fallback to backend audio if JS speech not supported
+  if (!('speechSynthesis' in window) && audioUrl) {
+    playAudio(audioUrl);
+  }
+  const timer = setInterval(() => {
+    if (i < fullReply.length) {
+      typingSpan.innerHTML += fullReply.charAt(i++);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    } else {
+      clearInterval(timer);
+      isTyping = false;
+      sendBtn.disabled = false;
+      sendBtn.classList.remove("typing");
+      sendBtn.textContent = "Send";
+      userInput.disabled = false;
+      userInput.placeholder = "Type your message...";
+      userInput.focus();
+      micBtn.disabled = false;
+      animateMouthStop();
+      if (actionHtml) {
+        executeDynamicAction(actionHtml);
+      }
+      if (callback) callback();
+    }
+  }, 80);
+}
+function animateMouthStart() { mouth.classList.add("typing"); }
+function animateMouthStop() { mouth.classList.remove("typing"); }
+// === SEND MESSAGE ===
+async function sendMessage(message = null) {
+  if (isTyping || !currentUsername) return;
+  const msg = message || userInput.value.trim();
+  if (!msg) return;
+  userInput.value = "";
+  displayMessage("user", msg);
+  chatHistory.push({ role: "user", content: msg, action_html: null });
+  const aryaElem = document.createElement("div");
+  aryaElem.className = "arya-msg";
+  aryaElem.innerHTML = `<span class="font-semibold">Arya:</span> <span class="typing" id="temp-typing"></span>`;
+  chatbox.appendChild(aryaElem);
+  const typingSpan = document.getElementById("temp-typing");
+  try {
+    const response = await fetch(`/chat/${encodeURIComponent(currentUsername)}/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie('csrftoken') },
+      body: JSON.stringify({ message: msg })
+    });
+    if (!response.ok) throw new Error("Network error");
+    const data = await response.json();
+    const fullReply = data.reply || "Let me help you!";
+    const actionHtml = data.action_html || null;
+    const audioUrl = data.audio_url || null; // Optional backend fallback
+    typeResponse(typingSpan, fullReply, actionHtml, aryaElem, audioUrl, () => {
+      chatHistory.push({ role: "assistant", content: fullReply, action_html: actionHtml, audio_url: audioUrl });
+    });
+  } catch (err) {
+    console.error(err);
+    const fallbackReply = "I'm here to help!";
+    const fallbackAudioUrl = null; // No audio on error for simplicity
+    typeResponse(typingSpan, fallbackReply, null, aryaElem, fallbackAudioUrl, () => {
+      chatHistory.push({ role: "assistant", content: fallbackReply, action_html: null, audio_url: null });
+    });
+  }
+}
+// === ENTER KEY ===
+userInput.addEventListener("keypress", e => {
+  if (e.key === "Enter" && !isTyping) sendMessage();
+});
+// === VOICE INPUT ===
+function startListening() {
+  if (isTyping || !currentUsername) return;
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Voice not supported");
+    return;
+  }
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = "en-IN";
+  recognition.interimResults = false;
+  recognition.onresult = e => sendMessage(e.results[0][0].transcript);
+  recognition.start();
+}
+</script>
+</body>
+</html> {% endcomment %}

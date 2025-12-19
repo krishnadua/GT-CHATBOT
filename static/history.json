@@ -1,0 +1,46 @@
+[
+  {
+    "user": "hi",
+    "ai": "Hello I'm Arya, your web-agent for Golden Tree Garments. How can I assist you today We are a clothing shop dealing in men's, women's, and kids' clothing, with Mr. Mahendar Singh as the owner. I was created by Team Krishna Dua, a software engineer. Let me know how else I can help!"
+  },
+  {
+    "user": "price of your different products",
+    "ai": "I understand your query. Let me assist you! Let me know how else I can help!"
+  },
+  {
+    "user": "price of your different product",
+    "ai": "Certainly Here are the price ranges for some of our products at Golden Tree Garments:  Blazers: From ₹500 to ₹4500  Sherwanis: From ₹2500 to ₹17000  Two-piece sets: From ₹1000 to ₹4000  Premium Wedding Suits Collection: From ₹5000 to ₹10000 We also deal in men's coat pants, Indo Western wear, kurta pajamas, jeans, t-shirts, and lowers. For kids, we have blazers, suits, and t-shirts. In women's wear, we offer bridal lehengas, non-bridal lehengas, gowns, crop tops, and sarees. Is there a specific product you'd like more details about I'm here to help Let me know how else I can help!"
+  },
+  {
+    "user": "open fb",
+    "ai": "Certainly I'll open our Facebook page for you right away. You can explore our latest collections and updates there. Action performed successfully."
+  },
+  {
+    "user": "open fb",
+    "ai": "I'd be happy to open our Facebook page for you again You'll find all our latest updates and collections there. Action performed successfully."
+  },
+  {
+    "user": "open uyoutube",
+    "ai": "Certainly I'll open our YouTube channel for you right away. You can find videos about our collections and more there. Action performed successfully."
+  },
+  {
+    "user": "open youtube",
+    "ai": "Certainly I'll open our YouTube channel for you right away. You can find videos about our collections and more there. Action performed successfully."
+  },
+  {
+    "user": "how i can come",
+    "ai": "Certainly Golden Tree Garments is located at Plot No. 447, Jheel Chowk / Jheel Khurenja, Geeta Colony, Delhi – 110031. For easier navigation, our nearest metro stations are Nirman Vihar and Shastri Park. Would you like me to open the location on Google Maps for you Action performed successfully."
+  },
+  {
+    "user": "jeans prices",
+    "ai": "I appreciate your query about jeans prices While our knowledge base confirms that we do offer a variety of jeans for men, it doesn't specify a precise price range for them. For the most accurate and up-to-date pricing on our jeans collection, I recommend visiting our store or contacting us directly. Would you like me to provide our phone number or store address again I'm here to help in any other way Let me know how else I can help!"
+  },
+  {
+    "user": "can i contact you now at 6 am",
+    "ai": "Our store is open from 9:00 AM to 8:00 PM, all days of the week. Unfortunately, 6 AM is outside of our operating hours. You're welcome to contact us or visit during our open hours. Would you like me to provide our phone number for when we open I'm here to help Let me know how else I can help!"
+  },
+  {
+    "user": "open insta",
+    "ai": "Absolutely I'll open our Instagram page for you right away. You can explore our latest styles and updates there. Action performed successfully."
+  }
+]
